@@ -2,7 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -11,27 +13,60 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: github-pages
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Run storage and data contracts
+        run: npm run test:contracts
+
+      - name: Run article authoring contracts
+        run: npm run test:authoring
+
+      - name: Run mathematics engine contracts
+        run: npm run test:math-engine
+
+      - name: Run graphing and geometry contracts
+        run: npm run test:graph-tools
+
+      - name: Run learning system contracts
+        run: npm run test:learning
+
+      - name: Run search and knowledge discovery contracts
+        run: npm run test:search
+
+      - name: Run personal workspace and backup contracts
+        run: npm run test:workspace
+
+      - name: Run offline and PWA contracts
+        run: npm run test:offline
+
+      - name: Run cross-feature release integration checks
+        run: npm run test:integration
+
       - name: Run release smoke checks
         run: npm run test:smoke
+
       - name: Type-check and build
         run: npm run build
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
