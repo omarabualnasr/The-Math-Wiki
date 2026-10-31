@@ -49,6 +49,7 @@ const graphTool = await read('src/features/playground/GraphTool.tsx');
 const geometryTool = await read('src/features/playground/GeometryTool.tsx');
 const graphEngine = await read('src/engine/graphEngine.ts');
 const geometryEngine = await read('src/engine/geometryEngine.ts');
+const graphContracts = await read('scripts/graph-tools-contracts.mjs');
 const advancedMathEngine = await read('src/engine/advancedMathEngine.ts');
 const matrixEngine = await read('src/engine/matrixEngine.ts');
 const statisticsEngine = await read('src/engine/statisticsEngine.ts');
@@ -65,6 +66,9 @@ const pkg = JSON.parse(await read('package.json'));
 assert.match(main, /HashRouter/, 'GitHub Pages app must use HashRouter for refresh-safe deep links');
 assert.match(vite, /base:\s*['"]\.\/['"]/, 'Vite must emit relative asset paths for project pages');
 assert.match(workflow, /actions\/deploy-pages@v4/, 'GitHub Pages deployment action must be configured');
+assert.match(graphContracts, /execFileSync\(process\.execPath,\s*\[localCompiler,\s*\.\.\.compilerArgs\]/s, 'Graph contracts must invoke the local TypeScript compiler script before compiler arguments.');
+assert.match(graphContracts, /--rootDir[\s\S]*src\/engine/, 'Graph contracts must pin the TypeScript engine root directory.');
+assert.match(graphContracts, /findEmittedFile/, 'Graph contracts must locate emitted JavaScript within the temporary output directory.');
 assert.match(workflow, /npm run test:contracts/, 'Deployment workflow must run storage/data contract tests.');
 for (const script of ['test:authoring', 'test:math-engine', 'test:graph-tools', 'test:learning', 'test:search', 'test:workspace', 'test:offline', 'test:integration']) {
   assert.match(workflow, new RegExp(`npm run ${script.replace(':', ':')}`), `Deployment workflow must run ${script}.`);

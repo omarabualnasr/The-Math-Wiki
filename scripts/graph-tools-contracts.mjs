@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,29 +10,46 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const temp = await mkdtemp(path.join(os.tmpdir(), 'math-wiki-graph-'));
 try {
-  const localCompiler = path.join(root, 'node_modules/typescript/bin/tsc');
-  const command = existsSync(localCompiler) ? process.execPath : 'tsc';
-  const prefix = existsSync(localCompiler) ? [localCompiler] : [];
-  // Pin the compiler root so TypeScript versions and runner layouts emit the
-  // two contract modules directly into the temporary output directory.
-  // Without an explicit rootDir, some CI compiler layouts can preserve the
-  // src/engine path and make the following require() look in the wrong place.
-  execFileSync(command, [
-    'src/engine/graphEngine.ts',
-    'src/engine/geometryEngine.ts',
+  const localCompiler = path.join(root, 'node_modules', 'typescript', 'bin', 'tsc');
+  const compilerArgs = [
+    path.join(root, 'src/engine/graphEngine.ts'),
+    path.join(root, 'src/engine/geometryEngine.ts'),
     '--target', 'ES2020',
     '--module', 'commonjs',
     '--moduleResolution', 'node',
-    '--rootDir', 'src/engine',
+    '--rootDir', path.join(root, 'src/engine'),
     '--strict',
     '--skipLibCheck',
     '--outDir', temp,
-  ], { cwd: root, stdio: 'pipe' });
+  ];
+
+  // When npm install provides the project-pinned TypeScript compiler, invoke
+  // it through Node. The compiler script must be the first argument; passing
+  // only the .ts inputs to Node does not invoke tsc and emits no JavaScript.
+  // Fall back to a globally installed tsc for local/offline contract checks.
+  if (existsSync(localCompiler)) {
+    execFileSync(process.execPath, [localCompiler, ...compilerArgs], { cwd: root, stdio: 'pipe' });
+  } else {
+    execFileSync('tsc', compilerArgs, { cwd: root, stdio: 'pipe' });
+  }
+
+  async function findEmittedFile(directory, filename) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isFile() && entry.name === filename) return entryPath;
+      if (entry.isDirectory()) {
+        const nested = await findEmittedFile(entryPath, filename);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
   const require = createRequire(import.meta.url);
-  const graphModulePath = path.join(temp, 'graphEngine.js');
-  const geometryModulePath = path.join(temp, 'geometryEngine.js');
-  assert.ok(existsSync(graphModulePath), `TypeScript did not emit graphEngine.js at the expected path: ${graphModulePath}`);
-  assert.ok(existsSync(geometryModulePath), `TypeScript did not emit geometryEngine.js at the expected path: ${geometryModulePath}`);
+  const graphModulePath = await findEmittedFile(temp, 'graphEngine.js');
+  const geometryModulePath = await findEmittedFile(temp, 'geometryEngine.js');
+  assert.ok(graphModulePath, `TypeScript completed but graphEngine.js was not found under its output directory: ${temp}`);
+  assert.ok(geometryModulePath, `TypeScript completed but geometryEngine.js was not found under its output directory: ${temp}`);
   const graph = require(graphModulePath);
   const geometry = require(geometryModulePath);
   const evaluate = (expression, scope) => {
