@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 260" role="img" aria-labelledby="title desc">
+  <title id="title">Visualising the sum one plus two plus three</title>
+  <desc id="desc">One outlined square, followed by two squares, followed by three squares, equals six squares in total.</desc>
+  <rect width="920" height="260" rx="18" fill="#f7f7f7"/>
+  <g fill="#fff" stroke="#222" stroke-width="3">
+    <rect x="90" y="99" width="62" height="62" rx="7"/>
+    <rect x="292" y="99" width="62" height="62" rx="7"/>
+    <rect x="367" y="99" width="62" height="62" rx="7"/>
+    <rect x="576" y="99" width="62" height="62" rx="7"/>
+    <rect x="651" y="99" width="62" height="62" rx="7"/>
+    <rect x="726" y="99" width="62" height="62" rx="7"/>
+  </g>
+  <g fill="#444" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">
+    <text x="121" y="205">1</text>
+    <text x="360" y="205">2</text>
+    <text x="682" y="205">3</text>
+  </g>
+  <g fill="#111" font-family="Arial, sans-serif" font-size="48" font-weight="400" text-anchor="middle">
+    <text x="220" y="145">+</text>
+    <text x="493" y="145">+</text>
+    <text x="843" y="145">= 6</text>
+  </g>
+</svg>

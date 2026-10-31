@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "id": "sum",
+  "slug": "sum",
+  "title": "Sum",
+  "level": "Foundations",
+  "difficulty": "Beginner",
+  "aliases": [
+    "Total"
+  ],
+  "summary": "Understand what a sum represents, how addition is written, and how summation notation describes a sequence of terms.",
+  "branch": "arithmetic",
+  "status": "published",
+  "relatedTopics": [
+    "addition",
+    "arithmetic",
+    "sequences-and-series"
+  ],
+  "createdAt": "2026-10-31T00:00:00.000Z",
+  "updatedAt": "2026-10-31T00:00:00.000Z",
+  "blocks": [
+    {
+      "id": "sum-overview",
+      "type": "text",
+      "heading": "Overview",
+      "content": "A sum is the result obtained by adding two or more quantities. The word can describe the final total, while summation describes the process of adding a collection of terms. Sums appear throughout arithmetic, algebra, calculus, statistics, and many other areas of mathematics."
+    },
+    {
+      "id": "sum-definition",
+      "type": "definition",
+      "heading": "Definition",
+      "content": "The sum of a finite collection of numbers is the number obtained by combining those numbers using addition."
+    },
+    {
+      "id": "sum-basic-example",
+      "type": "example",
+      "heading": "A simple example",
+      "question": "Find the sum of 4, 3, and 2.",
+      "steps": [
+        "Write the addition: 4 + 3 + 2.",
+        "Add the first two numbers: 4 + 3 = 7.",
+        "Add the final number: 7 + 2 = 9."
+      ],
+      "answer": "The sum is 9."
+    },
+    {
+      "id": "sum-visual-model",
+      "type": "image",
+      "heading": "Visualising a sum",
+      "src": "images/sum-groups.svg",
+      "alt": "One square, plus two squares, plus three squares, equals six squares in total.",
+      "caption": "The groups contain 1, 2 and 3 units. Combining all three groups gives a total of 6 units."
+    },
+    {
+      "id": "sum-addition-vs-summation",
+      "type": "text",
+      "heading": "Addition and summation",
+      "content": "Addition is the operation of combining quantities. A sum is the result of that operation. Summation is often used when many terms are added, especially when the terms follow a pattern or are described by a sequence."
+    },
+    {
+      "id": "sum-notation",
+      "type": "latex",
+      "heading": "Summation notation",
+      "latex": "\\sum_{i=1}^{n} a_i",
+      "display": true,
+      "explanation": "The Greek capital letter Sigma (Σ) means that the terms are to be added. The index i begins at 1 and increases by 1 until it reaches n. The expression aᵢ represents the term selected at each index."
+    },
+    {
+      "id": "sum-expanded-notation",
+      "type": "latex",
+      "heading": "Expanding a summation",
+      "latex": "\\sum_{i=1}^{4} i = 1 + 2 + 3 + 4 = 10",
+      "display": true,
+      "explanation": "The lower limit tells us to start at i = 1. The upper limit tells us to stop at i = 4. Substituting each integer gives four terms, whose total is 10."
+    },
+    {
+      "id": "sum-first-n-formula",
+      "type": "latex",
+      "heading": "Sum of the first positive integers",
+      "latex": "S_n = \\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}",
+      "display": true,
+      "explanation": "This formula gives the sum of the integers from 1 through n. It avoids adding every integer individually."
+    },
+    {
+      "id": "sum-formula-derivation-text",
+      "type": "text",
+      "heading": "Why the formula works",
+      "content": "Write the same sum in ascending and descending order. When the two lines are added term by term, every pair has the same value, n + 1. There are n such pairs, so twice the sum is n(n + 1). Dividing by 2 gives the formula."
+    },
+    {
+      "id": "sum-formula-derivation-equation",
+      "type": "latex",
+      "heading": "Formula derivation",
+      "latex": "\\begin{aligned}S_n &= 1+2+\\cdots+n\\\\S_n &= n+(n-1)+\\cdots+1\\\\2S_n &= n(n+1)\\\\S_n &= \\frac{n(n+1)}{2}\\end{aligned}",
+      "display": true,
+      "explanation": "Pairing terms from opposite ends produces n pairs, each equal to n + 1."
+    },
+    {
+      "id": "sum-formula-example",
+      "type": "example",
+      "heading": "Using the formula",
+      "question": "Find the sum of the first 10 positive integers.",
+      "steps": [
+        "Identify n = 10.",
+        "Substitute into the formula: S₁₀ = 10(10 + 1) / 2.",
+        "Calculate: S₁₀ = 110 / 2."
+      ],
+      "answer": "S₁₀ = 55."
+    },
+    {
+      "id": "sum-properties",
+      "type": "table",
+      "heading": "Important properties of addition",
+      "headers": [
+        "Property",
+        "Rule",
+        "Meaning"
+      ],
+      "rows": [
+        [
+          "Commutative",
+          "a + b = b + a",
+          "The order of two addends does not change the sum."
+        ],
+        [
+          "Associative",
+          "(a + b) + c = a + (b + c)",
+          "Changing the grouping does not change the sum."
+        ],
+        [
+          "Identity",
+          "a + 0 = a",
+          "Adding zero leaves a number unchanged."
+        ],
+        [
+          "Inverse",
+          "a + (−a) = 0",
+          "A number and its additive inverse sum to zero."
+        ]
+      ]
+    },
+    {
+      "id": "sum-graph",
+      "type": "graph",
+      "heading": "Explore the partial sums",
+      "expression": "x*(x+1)/2",
+      "xMin": 0,
+      "xMax": 12,
+      "xLabel": "n",
+      "yLabel": "Sₙ",
+      "inspectValue": 5,
+      "caption": "Move the slider to see how the sum of the first n positive integers grows."
+    },
+    {
+      "id": "sum-common-mistakes",
+      "type": "text",
+      "heading": "Common points of confusion",
+      "content": "A sum is not the same thing as a product: a sum uses addition, while a product uses multiplication. In summation notation, the lower and upper limits identify which terms are included. Always check whether the upper limit is included; in the standard finite notation shown here, it is."
+    },
+    {
+      "id": "sum-exercise",
+      "type": "exercise",
+      "heading": "Try it yourself",
+      "question": "Use the formula for the sum of the first n positive integers to find the sum from 1 to 8.",
+      "hint": "Substitute n = 8 into Sₙ = n(n + 1) / 2.",
+      "answer": "S₈ = 8(9) / 2 = 36."
+    }
+  ]
+}
