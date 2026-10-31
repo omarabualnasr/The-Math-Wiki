@@ -46,9 +46,10 @@ assert.match(workspacePage, /Collections & reading lists/, 'Personal collections
 assert.match(workspacePage, /Download backup ZIP/, 'The workspace must export a full backup.');
 assert.match(workspacePage, /Restore from backup/, 'The workspace must restore validated backups.');
 assert.match(workspacePage, /Prepare offline/, 'The workspace must offer offline preparation.');
-assert.match(articlePage, /Save offline/, 'Articles must be pinnable to the local offline library.');
+assert.doesNotMatch(articlePage, /Save offline/, 'Article pages must not display a Save offline action.');
+assert.match(workspaceStorage, /setArticleOffline/, 'The personal workspace must retain the offline article pin storage API.');
 assert.match(articleCatalog, /import\.meta\.glob<MathArticle>\('\.\/pages\/\*\.json', \{ eager: true/, 'Published article JSON must be bundled eagerly for the offline catalogue.');
-assert.match(articlePage, /if \(!savedOffline\)[\s\S]*?cacheApplicationForOffline/, 'Unpinning an article must work offline without trying to refresh the app cache.');
+
 assert.match(playground, /restoreSessionId/, 'The playground must support opening saved tool sessions.');
 for (const [name, source] of [['graph', graphTool], ['geometry', geometryTool], ['calculator', calculatorTool]]) {
   assert.match(source, /saveWorkspaceSession/, `${name} sessions must be saveable.`);

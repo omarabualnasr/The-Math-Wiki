@@ -27,7 +27,7 @@ export default function SplitViewPage() {
   const [rightId, setRightId] = useState(availableRight[0]?.id || '');
   const rightArticle = availableRight.find((article) => article.id === rightId) || availableRight[0];
 
-  if (!leftArticle) return <div className="page-stack"><div className="page-heading"><div><div className="eyebrow">READING WORKSPACE</div><h1>Split View</h1><p>Open two mathematics articles side by side.</p></div></div><div className="my-pages-empty"><Columns2 size={27}/><strong>No articles available yet</strong><span>Create or publish another article to compare two pages in this workspace.</span><Link className="button button-secondary" to="/editor/new">Create an article</Link></div></div>;
+  if (!leftArticle) return <div className="page-stack"><div className="page-heading"><div><div className="eyebrow">READING WORKSPACE</div><h1>Split View</h1><p>Open two mathematics articles side by side.</p></div></div><div className="library-empty"><Columns2 size={27}/><strong>No articles available yet</strong><span>Create or publish another article to compare two pages in this workspace.</span><Link className="button button-secondary" to="/editor/new">Create an article</Link></div></div>;
 
   return <div className="split-view-page">
     <div className="page-heading split-heading"><div><div className="eyebrow">READING WORKSPACE</div><h1>Split View</h1><p>Read two articles side by side. Each panel scrolls independently.</p></div><span className="split-heading-icon"><Columns2 size={20}/></span></div>

@@ -15,6 +15,11 @@ const [packageText, workflow, app, main, articleTypes, renderer, validator, pwa,
 ]);
 const pkg = JSON.parse(packageText);
 
+const [symbolsPage, tablesTool, calculatorTool, playgroundPage] = await Promise.all([
+  read('src/features/symbols/MathSymbolsPage.tsx'), read('src/features/playground/TablesTool.tsx'),
+  read('src/features/playground/CalculatorTool.tsx'), read('src/features/playground/MathPlaygroundPage.tsx'),
+]);
+
 // Every declared article block must be validated and rendered.
 const blockUnion = articleTypes.match(/export type ArticleBlock =([\s\S]*?);/);
 assert.ok(blockUnion, 'ArticleBlock discriminated union must exist.');
@@ -31,9 +36,24 @@ for (const type of new Set(blockTypes)) {
 }
 
 // All major page routes remain wired to the application shell.
-for (const route of ['/branches', '/articles/:slug', '/editor/new', '/my-pages', '/playground', '/symbols', '/bookmarks', '/workspace', '/learning', '/settings']) {
+for (const route of ['/branches', '/articles/:slug', '/editor/new', '/playground', '/symbols', '/bookmarks', '/workspace', '/learning', '/settings']) {
   assert.ok(app.includes(`path="${route}"`), `Missing application route ${route}.`);
 }
+assert.doesNotMatch(app, /path="\/my-pages"|About the Creator/, 'Removed library pages must not be routed.');
+assert.match(app, /sidebar-search/, 'The global search field must be in the side panel.');
+assert.match(app, /sidebar-create-button/, 'Page creation must be accessible from the side panel.');
+assert.match(app, /sidebar-settings-link/, 'Settings must be anchored at the bottom of the side panel.');
+assert.doesNotMatch(articlePage, /to=\"\/learning\"/, 'Article actions must not link to the Learning Center while it is marked Soon.');
+assert.doesNotMatch(articlePage, /onContextMenu=.*preventDefault/, 'Native browser text-selection context menus must remain available.');
+assert.doesNotMatch(articlePage, /Save offline|to=\"\/learning\"|article-reader-note-count/, 'Article pages must not show offline or Soon Learning Center actions or extra annotation microcopy.');
+assert.match(app, /FIRST ARTICLE[\s\S]*Explore SUM[\s\S]*Read the Article/, 'Home must show the compact first-article callout.');
+assert.doesNotMatch(app, /A growing reference|21 of 21 branches|21 branches|Local data storage|Browser storage estimate|Local save access|Color mode/, 'Removed dashboard counts, storage diagnostics and duplicate mode controls must stay absent.');
+assert.match(app, /Content width[\s\S]*?Soon/, 'Content width must remain visibly marked Soon.');
+assert.doesNotMatch(symbolsPage, /symbols-summary-row|121|catalogued symbols|PNG \+ LaTeX/, 'Symbol statistics cards must remain removed.');
+assert.doesNotMatch(tablesTool, /Scrollable table|Copy as tab-separated values|Multiplication table · 12 × 12/, 'Table footer microcopy must remain removed.');
+assert.doesNotMatch(calculatorTool, /Supports parentheses|Enter to calculate/, 'Calculator footer instructions must remain removed.');
+assert.doesNotMatch(playgroundPage, /Five workspaces|Calculations and constructions run in your browser|Personal history and geometry are stored on this device/, 'Playground summary cards and footer microcopy must remain removed.');
+assert.match(app, /Math Wiki Mission[\s\S]*?Soon/, 'Math Wiki Mission must remain visible as a disabled Soon item.');
 assert.match(main, /<HashRouter>/, 'GitHub Pages navigation must use HashRouter.');
 assert.match(main, /registerAppServiceWorker\(\)/, 'The PWA service worker must register at startup.');
 assert.match(main, /<ErrorBoundary>/, 'The app entry must retain its recovery boundary.');
@@ -70,6 +90,7 @@ for (const file of sourceFiles) {
 }
 assert.match(globalCss, /@media\s*\(/, 'Responsive breakpoints must remain present.');
 assert.match(globalCss, /prefers-reduced-motion/, 'Reduced-motion preferences must remain supported.');
+assert.match(globalCss, /\.nav-disabled[^}]*pointer-events:\s*none/, 'Soon navigation items must not be interactive.');
 assert.match(readme, /Pass 7|offline|backup/i, 'Release documentation must describe the personal workspace and offline capabilities.');
 assert.match(readme, /Pass 8|release/i, 'Release documentation must include current QA guidance.');
 

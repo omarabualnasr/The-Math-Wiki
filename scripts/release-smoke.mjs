@@ -80,7 +80,8 @@ assert.match(articlePage, /Compare Mode[\s\S]*?Soon/, 'Compare Mode must be pres
 assert.match(articlePage, /Video[\s\S]*?Soon[\s\S]*?Book[\s\S]*?Soon/, 'Video and Book reading modes must be present and marked Soon');
 assert.match(app, /Account[\s\S]*?Soon/, 'Account must be visible and marked Soon');
 assert.match(app, /Enable Sound Effects[\s\S]*?Soon/, 'Sound effects must be visible and marked Soon');
-assert.match(app, /English[\s\S]*?More languages to come later/, 'The interface must be marked as English-first');
+assert.match(await read('index.html'), /<html lang="en">/, 'The current interface language must remain English.');
+assert.doesNotMatch(app, /More languages to come later|Structured for learning/, 'Remove the small language and learning footer microcopy.');
 for (const label of ['Math Toolkit for Programming', 'Math to Code', 'Math Design on Figma', 'Graphs and Equations to Embed Outside']) {
   assert.ok(playground.includes(label), `${label} must be visible in the playground and marked Soon`);
 }

@@ -401,7 +401,7 @@ export default function ArticleEditor({ isNew = false }: { isNew?: boolean }) {
   };
 
   if (!isNew && articleId && !initial) {
-    return <div className="article-not-found"><h1>Draft not found</h1><p>This page is not available in this browser.</p><Link to="/my-pages">Open My Pages</Link></div>;
+    return <div className="article-not-found"><h1>Draft not found</h1><p>This page is not available in this browser.</p><Link to="/editor/new">Create a new page</Link></div>;
   }
 
   return <div className="editor-page editor-page-advanced">
@@ -457,7 +457,7 @@ export default function ArticleEditor({ isNew = false }: { isNew?: boolean }) {
         <BlockTypeGroup title="Reference & interactive" types={referenceBlockTypes} onAdd={addBlock}/>
       </div>
     </section>
-    <div className="editor-bottom-actions"><span>Drafts and revisions are stored in this browser. Export JSON to publish through your GitHub repository.</span><button className="button button-primary" onClick={persistArticle} disabled={!article.title.trim() || !article.slug.trim()}><Save size={15}/> Save draft</button></div>
+    <div className="editor-bottom-actions"><button className="button button-primary" onClick={persistArticle} disabled={!article.title.trim() || !article.slug.trim()}><Save size={15}/> Save draft</button></div>
 
     {historyOpen && <RevisionHistoryDialog article={article} items={historyItems} onClose={() => setHistoryOpen(false)} onRestore={restoreRevision}/>}
     {mediaOpen && <MediaManagerDialog article={article} onClose={() => setMediaOpen(false)} onUpdateBlock={updateBlock} onRemoveBlock={removeBlock} onAddImage={addImageBlock}/>}

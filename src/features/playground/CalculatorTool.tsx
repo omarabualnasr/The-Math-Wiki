@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Archive, Calculator, Check, Clock3, Copy, History, RotateCcw, Trash2 } from 'lucide-react';
+import { Archive, Calculator, Clock3, Copy, History, RotateCcw, Trash2 } from 'lucide-react';
 import { evaluateMathExpression, formatNumber } from '../../engine/mathEngine';
 import MathKeyboard from './MathKeyboard';
 import { loadPersonalWorkspace, saveWorkspaceSession } from '../../engine/personalWorkspaceStorage';
@@ -129,7 +129,6 @@ export default function CalculatorTool({ restoreSessionId }: { restoreSessionId?
         }}>{key}</button>)}
       </div>
       {keyboardOpen && <MathKeyboard onInsert={insert} onClose={() => setKeyboardOpen(false)} compact />}
-      <div className="calculator-footnote"><span><Check size={13} /> Supports parentheses, powers, trigonometry, logarithms and constants</span><span>Enter to calculate · Esc to close keyboard</span></div>
     </section>
     <section className="play-panel calculator-history-panel">
       <div className="history-heading"><div className="play-panel-heading"><div className="play-panel-icon"><History size={17} /></div><div><h2>Calculation history</h2><p>Recent calculations are saved on this device.</p></div></div><button className="tool-icon-button" onClick={clearHistory} disabled={!history.length} aria-label="Clear calculation history"><Trash2 size={15} /></button></div>

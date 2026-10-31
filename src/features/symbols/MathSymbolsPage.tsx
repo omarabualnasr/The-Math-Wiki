@@ -103,7 +103,6 @@ export default function MathSymbolsPage() {
 
   return <div className="page-stack symbols-page">
     <div className="page-heading"><div><div className="eyebrow">MATHEMATICAL REFERENCE</div><h1>Math Symbols Library</h1><p>Search mathematical notation, copy symbols or LaTeX, and export PNG files.</p></div><button className="button button-primary symbols-download-all" onClick={() => void exportAll()} disabled={busy}><FileArchive size={15}/>{busy ? 'Preparing collection…' : 'Download complete set'}</button></div>
-    <div className="symbols-summary-row"><div className="symbols-summary"><strong>{mathSymbols.length}</strong><span>catalogued symbols</span></div><div className="symbols-summary"><strong>{symbolCategories.length}</strong><span>categories</span></div><div className="symbols-summary"><strong>PNG + LaTeX</strong><span>export formats</span></div></div>
     <div className="symbols-browser">
       <section className="symbols-list-panel">
         <div className="symbols-search"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search symbols, names, meanings or LaTeX…"/><span>{filtered.length}</span></div>

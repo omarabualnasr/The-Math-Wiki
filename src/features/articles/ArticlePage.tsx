@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, BookOpen, Bookmark, Check, Clock3, Columns2, Copy, Download, GraduationCap, Highlighter, Link2, MessageSquareText, Share2, Trash2, X, Pencil, CloudDownload } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BookOpen, Bookmark, Check, Clock3, Columns2, Copy, Download, Highlighter, Link2, MessageSquareText, Share2, Trash2, X, Pencil } from 'lucide-react';
 import { mathBranches } from '../../data/branches';
 import { getArticleBySlug } from '../../engine/articleStorage';
 import { buildArticleReferenceIndex } from '../../engine/articleReferences';
@@ -12,8 +12,6 @@ import AnnotationHighlights from './AnnotationHighlights';
 import DrawingLayer from './DrawingLayer';
 import ReadAloud from './ReadAloud';
 import StudyPanel from './StudyPanel';
-import { loadPersonalWorkspace, setArticleOffline } from '../../engine/personalWorkspaceStorage';
-import { cacheApplicationForOffline } from '../../engine/pwa';
 
 type SelectionInfo = { blockId: string; start: number; end: number; quote: string; prefix: string; suffix: string; left: number; top: number };
 type NotePopup = { id: string; note: string; quote: string; left: number; top: number };
@@ -65,8 +63,6 @@ export default function ArticlePage() {
   const navigate = useNavigate();
   const article = getArticleBySlug(slug);
   const [bookmarked, setBookmarked] = useState(() => article ? isBookmarked(article.id) : false);
-  const [savedOffline, setSavedOffline] = useState(false);
-  const [offlineSaving, setOfflineSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [annotations, setAnnotations] = useState<TextAnnotation[]>(() => article ? getTextAnnotations(article.id) : []);
   const [selection, setSelection] = useState<SelectionInfo | null>(null);
@@ -85,7 +81,6 @@ export default function ArticlePage() {
     if (!article) return;
     setBookmarked(isBookmarked(article.id));
     setAnnotations(getTextAnnotations(article.id));
-    void loadPersonalWorkspace().then((workspace) => setSavedOffline(workspace.offlineArticleIds.includes(article.id)));
     setSelection(null);
     setStudyMode(null);
     const sync = () => setBookmarked(isBookmarked(article.id));
@@ -184,21 +179,6 @@ export default function ArticlePage() {
       setNotice('Bookmark could not be saved. Check browser storage settings.');
     }
   };
-  const saveForOffline = async () => {
-    if (offlineSaving) return;
-    setOfflineSaving(true);
-    try {
-      if (!savedOffline) {
-        const cached = await cacheApplicationForOffline(window.location.href);
-        if (!cached.ok) throw new Error(cached.error || 'Offline caching is unavailable.');
-      }
-      await setArticleOffline(article.id, !savedOffline);
-      setSavedOffline(!savedOffline);
-      setNotice(!savedOffline ? 'Article added to your offline library' : 'Article removed from your offline library');
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'This article could not be saved for offline reading.');
-    } finally { setOfflineSaving(false); }
-  };
 
   const downloadPdf = () => {
     const previousTitle = document.title;
@@ -238,7 +218,7 @@ export default function ArticlePage() {
   };
 
   return <div className="article-layout">
-    <article className="article-main" onContextMenu={(event) => event.preventDefault()} onClick={(event) => {
+    <article className="article-main" onClick={(event) => {
       const target = event.target;
       if (!(target instanceof Element) || !target.closest('.article-content-wrap') || target.closest('a, button, input, textarea, select')) return;
       const found = findAnnotationAtPoint(event.clientX, event.clientY, annotations);
@@ -259,14 +239,12 @@ export default function ArticlePage() {
         <div className="article-actions" aria-label="Article actions">
           <button className="article-action" onClick={downloadPdf}><Download size={14}/><span>Download PDF</span></button>
           <button className={`article-action ${bookmarked ? 'is-active' : ''}`} onClick={saveBookmark}><Bookmark size={14} fill={bookmarked ? 'currentColor' : 'none'}/><span>{bookmarked ? 'Bookmarked' : 'Bookmark'}</span></button>
-          <button className={`article-action ${savedOffline ? 'is-active' : ''}`} onClick={() => void saveForOffline()} disabled={offlineSaving}><CloudDownload size={14}/><span>{offlineSaving ? 'Saving…' : savedOffline ? 'Saved offline' : 'Save offline'}</span></button>
           <button className="article-action" onClick={copyArticle}><Copy size={14}/><span>Copy article</span></button>
           <button className="article-action" onClick={share}><Share2 size={14}/><span>Share</span></button>
           <button className="article-action" onClick={() => navigate(`/split/${article.slug}`)}><Columns2 size={14}/><span>Split view</span></button>
           <button className="article-action" onClick={() => setStudyMode('quiz')}><BookOpen size={14}/><span>Create quiz</span></button>
           <button className="article-action" onClick={() => setStudyMode('worksheet')}><Download size={14}/><span>Worksheet</span></button>
           <button className="article-action" onClick={() => setStudyMode('exam')}><Clock3 size={14}/><span>Timed exam</span></button>
-          <Link className="article-action" to="/learning"><GraduationCap size={14}/><span>Learning Center</span></Link>
         </div>
         <div className="article-future-actions" aria-label="Upcoming article tools">
           <button type="button" disabled><Link2 size={13}/><span>Mind Linker</span><span className="soon-pill">Soon</span></button>
@@ -283,7 +261,6 @@ export default function ArticlePage() {
       {studyMode && <StudyPanel article={article} mode={studyMode} onClose={() => setStudyMode(null)} />}
       {article.relatedTopics.length > 0 && <section className="article-related"><div className="article-section-heading">Related topics</div><div className="related-topic-links">{article.relatedTopics.map((topic) => <span key={topic}>{topic.replace(/-/g, ' ')}</span>)}</div></section>}
       <div className="article-end"><span>End of article</span><span /></div>
-      <div className="article-reader-note-count">{annotations.length} personal annotation{annotations.length === 1 ? '' : 's'} saved on this device</div>
     </article>
     <aside className="article-outline">
       <div className="outline-sticky">

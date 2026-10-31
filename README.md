@@ -52,7 +52,7 @@ The project uses `HashRouter` and relative Vite asset paths so repository projec
 1. Open **Create Page** in the application.
 2. Enter the title, branch, level, difficulty, aliases and summary.
 3. Add content blocks and use the up/down controls to reorder them.
-4. Drafts autosave in the current browser. Open **My Pages** to reopen, preview, export or delete them.
+4. Drafts autosave in the current browser. Use the article editor to continue editing a saved draft; export its JSON bundle when preparing a repository publication.
 5. Choose **Export JSON**. The exported file is a publish-ready article record.
 6. Add that JSON file to `src/data/pages/` in the repository. Keep one unique JSON filename per article.
 7. Commit and push the change. Vite automatically includes every `*.json` file in `src/data/pages/` in the site build.
@@ -95,7 +95,7 @@ To publish a new article without the editor, add a schema-version-1 JSON file to
 - Article section navigation and deep links to blocks
 - In-app article creation and editing
 - Add, remove and reorder content blocks
-- Local autosaved drafts and My Pages management
+- Local autosaved article drafts
 - Article preview, JSON import and JSON export
 - Command search across article titles, aliases, headings and block content
 
@@ -118,7 +118,7 @@ Pass 3 adds the first functional reading and library tools:
 - **Share fallback:** browsers with the Web Share API open the native share sheet; other browsers copy the article URL.
 - **Split View:** opens two available articles in independent, scrollable panes. A second article must exist in the published repository or local drafts before the right pane can display one.
 - **Reading width:** Shrink, Normal and Wide settings persist in local storage and affect article layout on desktop.
-- **Command bar:** includes navigation to Bookmarks, Settings, Split View and My Pages. Existing article-block search is retained.
+- **Search:** the side panel provides direct access to article, block, formula, symbol and branch search. The command palette remains available by keyboard shortcut.
 
 ### Run locally
 
@@ -254,7 +254,7 @@ The stabilization pass strengthens the data layer without changing the visual sy
 - **Shared storage helpers:** safe JSON reads/writes, temporary local-storage availability probing and optional browser-origin quota estimates.
 - **Non-destructive storage migration:** legacy `mw-*` and `mw:*` settings/playground keys are copied to the canonical `math-wiki:*` namespace. Source keys are retained, destination values are not overwritten, and a schema marker advances only when the migration finishes.
 - **Strict article validation:** imported and locally saved articles are checked for supported schema version, required metadata, valid timestamps, unique block IDs, consistent table row widths and finite, increasing graph ranges.
-- **Draft preservation:** updating or deleting a valid draft no longer silently drops unrelated malformed legacy records. My Pages reports records that cannot be opened instead of removing them.
+- **Draft preservation:** updating or deleting a valid draft no longer silently drops unrelated malformed legacy records. Invalid draft records are preserved for recovery instead of being silently removed.
 - **Published article protection:** local drafts cannot claim an existing published sample article ID or duplicate another article's URL slug.
 - **Save feedback:** the editor displays the actual validation or storage error instead of only showing a generic unsaved state.
 - **Storage diagnostics:** Settings includes a local write-access check and optional browser-origin storage estimate.
@@ -298,7 +298,7 @@ Pass 2 expands the existing article format and editor. The article schema remain
 - **Published article safety:** repository-published articles open as an independent editable draft copy with a new article ID, unique slug and new block IDs. The source article remains unchanged.
 - **Multi-block movement:** selected blocks can be moved up or down together while preserving their relative order.
 - **Unsaved-change protection:** the editor warns before closing or refreshing with unsaved changes; the in-app back action attempts to save before leaving.
-- **Library visibility:** branch pages list repository-published articles only. Local drafts and Ready items remain in My Pages and are not presented as public articles.
+- **Library visibility:** branch pages list repository-published articles only. Local drafts and Ready items remain private to the current browser and are not presented as public articles.
 
 ### Publishing workflow
 
@@ -418,7 +418,7 @@ The GitHub Actions workflow runs the graph/geometry contract suite once before t
 
 ## Second-stage Pass 5 — Intelligent Learning System
 
-The Learning Center adds a local learning history and spaced-repetition flashcard workspace. Article quizzes, timed exams and worksheets share a question generator. Arithmetic articles can include generated numerical variants; other articles use authored exercises, examples, definitions, theorem statements and supported formula prompts rather than unrelated generic arithmetic questions.
+The Learning Center module is retained in the codebase and currently marked **Soon** in navigation. It includes a local learning history and spaced-repetition flashcard workspace. Article quizzes, timed exams and worksheets share a question generator. Arithmetic articles can include generated numerical variants; other articles use authored exercises, examples, definitions, theorem statements and supported formula prompts rather than unrelated generic arithmetic questions.
 
 Learning data is stored in IndexedDB when available, with a guarded local-storage fallback. It is local to the current browser and is not synchronized to an account or another device. Quiz and exam attempts store per-question results for accuracy and mistake review. Flashcards are generated from supported article blocks and scheduled with Again / Hard / Good / Easy recall ratings. Numerical and polynomial-equivalence checking is limited to the supported expression grammar; text-answer scoring uses a keyword coverage heuristic and should be treated as practice feedback, not formal grading.
 
@@ -451,7 +451,7 @@ Pass 7 adds a local personal workspace without introducing accounts, cloud synch
 
 ### Personal Workspace
 
-Open **Personal Workspace** from the navigation to:
+The Personal Workspace module is retained in the codebase and currently marked **Soon** in navigation. Its planned capabilities include:
 
 - Create and delete personal article collections and reading lists.
 - Add published articles or local drafts to lists. Lists store article IDs and do not move or republish the original article.
