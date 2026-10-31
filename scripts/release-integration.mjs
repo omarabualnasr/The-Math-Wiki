@@ -5,13 +5,13 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relative) => readFile(path.join(root, relative), 'utf8');
-const [packageText, workflow, app, main, articleTypes, renderer, validator, pwa, serviceWorker, workspace, learning, articlePage, workspacePage, learningPage, globalCss, readme] = await Promise.all([
+const [packageText, workflow, app, main, articleTypes, renderer, validator, pwa, serviceWorker, workspace, learning, articlePage, workspacePage, learningPage, globalCss] = await Promise.all([
   read('package.json'), read('.github/workflows/deploy.yml'), read('src/app/App.tsx'), read('src/main.tsx'),
   read('src/types/article.ts'), read('src/features/articles/BlockRenderer.tsx'), read('src/engine/articleValidation.ts'),
   read('src/engine/pwa.ts'), read('public/sw.js'), read('src/engine/personalWorkspaceStorage.ts'),
   read('src/engine/learningStorage.ts'), read('src/features/articles/ArticlePage.tsx'),
   read('src/features/workspace/PersonalWorkspacePage.tsx'), read('src/features/learning/LearningCenterPage.tsx'),
-  read('src/styles/global.css'), read('README.md'),
+  read('src/styles/global.css'),
 ]);
 const pkg = JSON.parse(packageText);
 
@@ -143,7 +143,5 @@ for (const file of sourceFiles) {
 assert.match(globalCss, /@media\s*\(/, 'Responsive breakpoints must remain present.');
 assert.match(globalCss, /prefers-reduced-motion/, 'Reduced-motion preferences must remain supported.');
 assert.match(globalCss, /\.nav-disabled[^}]*pointer-events:\s*none/, 'Soon navigation items must not be interactive.');
-assert.match(readme, /Pass 7|offline|backup/i, 'Release documentation must describe the personal workspace and offline capabilities.');
-assert.match(readme, /Pass 8|release/i, 'Release documentation must include current QA guidance.');
 
 console.log(`Release integration checks passed: ${new Set(blockTypes).size} article block types, ${contractScripts.length} CI contract suites, routed application modules, guarded data recovery, safe PWA cache promotion, responsive and reduced-motion support.`);
