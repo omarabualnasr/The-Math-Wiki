@@ -1,3 +1,67 @@
+import { safeStorageGet, safeStorageSet } from './safeStorage';
+
+export type AnnotationTone = 'light' | 'mid' | 'dark' | 'red' | 'blue' | 'green' | 'yellow';
+
+export interface TextAnnotation {
+  id: string;
+  articleId: string;
+  blockId: string;
+  start: number;
+  end: number;
+  quote: string;
+  prefix: string;
+  suffix: string;
+  tone: AnnotationTone;
+  note: string;
+  createdAt: string;
+}
+
+export interface DrawingPoint { x: number; y: number }
+export interface DrawingStroke {
+  id: string;
+  points: DrawingPoint[];
+  tone: AnnotationTone;
+  size: number;
+  tool: 'pen' | 'eraser';
+}
+
+const TEXT_KEY = 'math-wiki:annotations:v1';
+const DRAWING_KEY = 'math-wiki:drawings:v2';
+
+function readMap<T>(key: string): Record<string, T[]> {
+  try {
+    const value: unknown = JSON.parse(safeStorageGet(key, '{}') || '{}');
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, T[]> : {};
+  } catch { return {}; }
+}
+function writeMap<T>(key: string, map: Record<string, T[]>): void {
+  if (!safeStorageSet(key, JSON.stringify(map))) {
+    throw new Error('Annotations could not be saved. Browser storage may be unavailable or full.');
+  }
+}
+function makeId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `annotation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const annotationTones = new Set<AnnotationTone>(['light', 'mid', 'dark', 'red', 'blue', 'green', 'yellow']);
+
+function isTextAnnotation(value: unknown): value is TextAnnotation {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.id === 'string'
+    && typeof item.articleId === 'string'
+    && typeof item.blockId === 'string'
+    && typeof item.start === 'number' && Number.isFinite(item.start) && item.start >= 0
+    && typeof item.end === 'number' && Number.isFinite(item.end) && item.end > item.start
+    && typeof item.quote === 'string'
+    && typeof item.prefix === 'string'
+    && typeof item.suffix === 'string'
+    && annotationTones.has(item.tone as AnnotationTone)
+    && typeof item.note === 'string'
+    && typeof item.createdAt === 'string';
+}
+
+function isDrawingPoint(value: unknown): value is DrawingPoint {
   if (!value || typeof value !== 'object') return false;
 
   const point = value as Record<string, unknown>;
