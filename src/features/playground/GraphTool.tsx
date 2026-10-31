@@ -5,7 +5,7 @@ import { evaluateMathExpression, expressionToLatex, formatNumber } from '../../e
 import MathExpression from '../articles/MathExpression';
 import { analyseFunction, estimateAreaBetween, estimateDerivative, estimateIntegral, findFunctionIntersections, projectSurfacePoint, sampleCartesian, sampleImplicit, sampleParametric, samplePolar, sampleSurface, type GraphPoint, type GraphRange } from '../../engine/graphEngine';
 import MathKeyboard from './MathKeyboard';
-import { loadPersonalWorkspace, saveWorkspaceSession, type JsonValue } from '../../engine/personalWorkspaceStorage';
+import { loadPersonalWorkspace, saveWorkspaceSession } from '../../engine/personalWorkspaceStorage';
 
 type FunctionItem = { id: string; expression: string };
 type GraphMode = 'cartesian' | 'polar' | 'parametric' | 'implicit' | 'surface' | 'visualizations';
