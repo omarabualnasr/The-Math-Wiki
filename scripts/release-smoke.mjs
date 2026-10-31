@@ -66,6 +66,9 @@ assert.match(main, /HashRouter/, 'GitHub Pages app must use HashRouter for refre
 assert.match(vite, /base:\s*['"]\.\/['"]/, 'Vite must emit relative asset paths for project pages');
 assert.match(workflow, /actions\/deploy-pages@v4/, 'GitHub Pages deployment action must be configured');
 assert.match(workflow, /npm run test:contracts/, 'Deployment workflow must run storage/data contract tests.');
+for (const script of ['test:authoring', 'test:math-engine', 'test:graph-tools', 'test:learning', 'test:search', 'test:workspace', 'test:offline', 'test:integration']) {
+  assert.match(workflow, new RegExp(`npm run ${script.replace(':', ':')}`), `Deployment workflow must run ${script}.`);
+}
 assert.match(workflow, /npm run build/, 'Deployment workflow must build the application');
 assert.match(app, /safeStorageGet/, 'App preferences must use guarded browser storage');
 assert.match(articlePage, /Mind Linker[\s\S]*?Soon/, 'Mind Linker must be present and marked Soon');
