@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CheckCircle2, ChevronRight, ClipboardList, Clock3, FileQuestion, Lightbulb, Printer, RotateCcw, X } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ClipboardList, Clock3, FileQuestion, Lightbulb, Printer, RotateCcw, X } from 'lucide-react';
 import type { MathArticle } from '../../types/article';
 import { createLearningAttempt, generateQuestionSet, scoreQuestionSet, type LearningQuestion, type PracticeDifficulty } from '../../engine/learningEngine';
 import { recordLearningAttempt } from '../../engine/learningStorage';

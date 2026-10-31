@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Activity, Archive, Download, Plus, RotateCcw, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { evaluateMathExpression, formatNumber } from '../../engine/mathEngine';
-import { analyseFunction, estimateAreaBetween, estimateDerivative, findFunctionIntersections, projectSurfacePoint, sampleCartesian, sampleImplicit, sampleParametric, samplePolar, sampleSurface, type GraphPoint, type GraphRange } from '../../engine/graphEngine';
+import { analyseFunction, estimateAreaBetween, estimateDerivative, estimateIntegral, findFunctionIntersections, projectSurfacePoint, sampleCartesian, sampleImplicit, sampleParametric, samplePolar, sampleSurface, type GraphPoint, type GraphRange } from '../../engine/graphEngine';
 import MathKeyboard from './MathKeyboard';
 import { loadPersonalWorkspace, saveWorkspaceSession, type JsonValue } from '../../engine/personalWorkspaceStorage';
 
@@ -223,7 +223,6 @@ function MathematicalVisualizations() {
   const [upper, setUpper] = useState(2);
   const [sequenceKind, setSequenceKind] = useState<'natural' | 'squares' | 'harmonic' | 'geometric' | 'fibonacci'>('squares');
   const [sequenceCount, setSequenceCount] = useState(16);
-  const [error, setError] = useState('');
   const theta = angle * Math.PI / 180;
   const unitX = 260 + Math.cos(theta) * 140;
   const unitY = 190 - Math.sin(theta) * 140;

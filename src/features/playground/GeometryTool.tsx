@@ -37,7 +37,7 @@ const tools: { id: Tool; label: string; mark: string; advanced?: boolean }[] = [
 function isGeometryObject(value: unknown): value is GeometryObject {
   if (!value || typeof value !== 'object') return false;
   const item = value as Record<string, unknown>;
-  if (typeof item.id !== 'string' || !Object.prototype.hasOwnProperty.call(expectedPoints, item.kind) || !Array.isArray(item.points)) return false;
+  if (typeof item.id !== 'string' || typeof item.kind !== 'string' || !Object.prototype.hasOwnProperty.call(expectedPoints, item.kind) || !Array.isArray(item.points)) return false;
   const kind = item.kind as ShapeKind;
   if (item.points.length !== expectedPoints[kind]) return false;
   if (advancedKinds.has(kind)) {
@@ -213,7 +213,8 @@ export default function GeometryTool({ restoreSessionId }: { restoreSessionId?: 
     if (!svgRef.current) return;
     try {
       const { toPng } = await import('html-to-image');
-      const image = await toPng(svgRef.current, { pixelRatio: 2, backgroundColor: getComputedStyle(svgRef.current).backgroundColor });
+      // html-to-image supports SVGElement at runtime, although its public typings accept HTMLElement only.
+      const image = await toPng(svgRef.current as unknown as HTMLElement, { pixelRatio: 2, backgroundColor: getComputedStyle(svgRef.current).backgroundColor });
       const link = document.createElement('a'); link.href = image; link.download = 'geometry-construction.png'; link.click();
     } catch { setMessage('PNG export is unavailable in this browser.'); }
   };
