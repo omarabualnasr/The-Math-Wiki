@@ -13,10 +13,28 @@ try {
   const localCompiler = path.join(root, 'node_modules/typescript/bin/tsc');
   const command = existsSync(localCompiler) ? process.execPath : 'tsc';
   const prefix = existsSync(localCompiler) ? [localCompiler] : [];
-  execFileSync(command, ['src/engine/graphEngine.ts', 'src/engine/geometryEngine.ts', '--target', 'ES2020', '--module', 'commonjs', '--strict', '--skipLibCheck', '--outDir', temp], { cwd: root, stdio: 'pipe' });
+  // Pin the compiler root so TypeScript versions and runner layouts emit the
+  // two contract modules directly into the temporary output directory.
+  // Without an explicit rootDir, some CI compiler layouts can preserve the
+  // src/engine path and make the following require() look in the wrong place.
+  execFileSync(command, [
+    'src/engine/graphEngine.ts',
+    'src/engine/geometryEngine.ts',
+    '--target', 'ES2020',
+    '--module', 'commonjs',
+    '--moduleResolution', 'node',
+    '--rootDir', 'src/engine',
+    '--strict',
+    '--skipLibCheck',
+    '--outDir', temp,
+  ], { cwd: root, stdio: 'pipe' });
   const require = createRequire(import.meta.url);
-  const graph = require(path.join(temp, 'graphEngine.js'));
-  const geometry = require(path.join(temp, 'geometryEngine.js'));
+  const graphModulePath = path.join(temp, 'graphEngine.js');
+  const geometryModulePath = path.join(temp, 'geometryEngine.js');
+  assert.ok(existsSync(graphModulePath), `TypeScript did not emit graphEngine.js at the expected path: ${graphModulePath}`);
+  assert.ok(existsSync(geometryModulePath), `TypeScript did not emit geometryEngine.js at the expected path: ${geometryModulePath}`);
+  const graph = require(graphModulePath);
+  const geometry = require(geometryModulePath);
   const evaluate = (expression, scope) => {
     const source = expression.replace(/\^/g, '**');
     const functions = { sin: Math.sin, cos: Math.cos, tan: Math.tan, sqrt: Math.sqrt, abs: Math.abs, exp: Math.exp, log: Math.log, pi: Math.PI, e: Math.E };
