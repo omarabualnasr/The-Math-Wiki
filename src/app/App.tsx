@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity, ArrowDownRight, ArrowRight, BookOpen, Bookmark, ChevronDown,
-  Compass, FilePlus2, FileText, Files, FlaskConical, Grid2X2, Home, Info, Menu, Moon,
-  Network, Search, Settings, Sigma, Sun, X, Plus,
+  Compass, FilePlus2, FileText, Files, FlaskConical, GraduationCap, Grid2X2, Home, Info, Menu, Moon,
+  Network, Search, Settings, Sigma, Sun, X, Plus, HardDrive,
 } from 'lucide-react';
 import { findTopic, mathBranches, totalTopics } from '../data/branches';
 import type { MathBranch, MathSubtopic } from '../data/branches';
@@ -14,12 +14,16 @@ import type { MathArticle } from '../types/article';
 import ArticleEditor from '../features/articles/ArticleEditor';
 import MyPagesPage from '../features/articles/MyPagesPage';
 import BookmarksPage from '../features/library/BookmarksPage';
+import LearningCenterPage from '../features/learning/LearningCenterPage';
 import SplitViewPage from '../features/library/SplitViewPage';
 import MathPlaygroundPage from '../features/playground/MathPlaygroundPage';
 import MathSymbolsPage from '../features/symbols/MathSymbolsPage';
+import PersonalWorkspacePage from '../features/workspace/PersonalWorkspacePage';
 import { mathSymbols } from '../data/symbols';
 import ReadingFocusGuide from '../features/reader/ReadingFocusGuide';
-import { safeStorageGet, safeStorageSet } from '../engine/safeStorage';
+import { inspectBrowserStorage, safeStorageGet, safeStorageGetJson, safeStorageSet, safeStorageSetJson } from '../engine/safeStorage';
+import { buildSearchIndex, isRecentSearchList, parseSearchQuery, saveRecentSearch, searchDocuments } from '../engine/searchEngine';
+import type { SearchResult } from '../engine/searchEngine';
 
 type Theme = 'light' | 'dark';
 type ContentWidth = 'shrink' | 'normal' | 'wide';
@@ -34,45 +38,63 @@ const navPrimary = [
 ];
 
 const navPersonal = [
+  { to: '/workspace', label: 'Personal Workspace', icon: HardDrive },
   { to: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
+  { to: '/learning', label: 'Learning Center', icon: GraduationCap },
   { to: '/my-pages', label: 'My Pages', icon: Files },
   { to: '/settings', label: 'Settings', icon: Settings },
   { to: '/mission', label: 'Math Wiki Mission', icon: Compass },
   { to: '/creator', label: 'About the Creator', icon: Info },
 ];
 
+const searchActions = [
+  { id: 'action-create-page', title: 'Create a page', detail: 'Open the article editor', to: '/editor/new' },
+  { id: 'action-branches', title: 'Browse all branches', detail: 'Explore the mathematics catalogue', to: '/branches' },
+  { id: 'action-playground', title: 'Math Playground', detail: 'Open mathematical tools and graphing', to: '/playground' },
+  { id: 'action-symbols', title: 'Math Symbols Library', detail: 'Browse mathematical notation', to: '/symbols' },
+  { id: 'action-workspace', title: 'Personal Workspace', detail: 'Collections, saved tool sessions and backups', to: '/workspace' },
+  { id: 'action-bookmarks', title: 'Bookmarks', detail: 'Open saved articles', to: '/bookmarks' },
+  { id: 'action-learning', title: 'Learning Center', detail: 'Practice history, flashcards and spaced repetition', to: '/learning' },
+  { id: 'action-settings', title: 'Settings', detail: 'Change reading width and appearance', to: '/settings' },
+  { id: 'action-split', title: 'Split View', detail: 'Read two articles side by side', to: '/split/sum' },
+  { id: 'action-my-pages', title: 'My Pages', detail: 'Manage your article drafts', to: '/my-pages' },
+];
+
 function App() {
-  const [theme, setTheme] = useState<Theme>(() => safeStorageGet('mw-theme') === 'dark' ? 'dark' : 'light');
-  const [contentWidth, setContentWidth] = useState<ContentWidth>(() => { const value = safeStorageGet('mw-reading-width'); return value === 'shrink' || value === 'wide' ? value : 'normal'; });
-  const [fontFamily, setFontFamily] = useState<FontFamily>(() => { const value = safeStorageGet('mw-font-family'); return value === 'Arial' || value === 'Georgia' || value === 'Verdana' ? value : 'DM Sans'; });
-  const [fontSize, setFontSize] = useState(() => { const value = Number(safeStorageGet('mw-font-size', '14')); return Number.isFinite(value) ? Math.min(22, Math.max(12, value)) : 14; });
-  const [highContrast, setHighContrast] = useState(() => safeStorageGet('mw-high-contrast') === 'true');
-  const [focusGuideEnabled, setFocusGuideEnabled] = useState(() => safeStorageGet('mw-focus-guide') === 'true');
+  const [theme, setTheme] = useState<Theme>(() => safeStorageGet('math-wiki:settings:theme:v1') === 'dark' ? 'dark' : 'light');
+  const [contentWidth, setContentWidth] = useState<ContentWidth>(() => { const value = safeStorageGet('math-wiki:settings:reading-width:v1'); return value === 'shrink' || value === 'wide' ? value : 'normal'; });
+  const [fontFamily, setFontFamily] = useState<FontFamily>(() => { const value = safeStorageGet('math-wiki:settings:font-family:v1'); return value === 'Arial' || value === 'Georgia' || value === 'Verdana' ? value : 'DM Sans'; });
+  const [fontSize, setFontSize] = useState(() => { const value = Number(safeStorageGet('math-wiki:settings:font-size:v1', '14')); return Number.isFinite(value) ? Math.min(22, Math.max(12, value)) : 14; });
+  const [highContrast, setHighContrast] = useState(() => safeStorageGet('math-wiki:settings:high-contrast:v1') === 'true');
+  const [focusGuideEnabled, setFocusGuideEnabled] = useState(() => safeStorageGet('math-wiki:settings:focus-guide:v1') === 'true');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => safeStorageGetJson('math-wiki:search:recent:v1', [] as string[], isRecentSearchList));
   const location = useLocation();
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    safeStorageSet('mw-theme', theme);
+    safeStorageSet('math-wiki:settings:theme:v1', theme);
   }, [theme]);
 
   useEffect(() => {
     document.documentElement.dataset.readingWidth = contentWidth;
-    safeStorageSet('mw-reading-width', contentWidth);
+    safeStorageSet('math-wiki:settings:reading-width:v1', contentWidth);
   }, [contentWidth]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--article-font-family', fontFamily === 'DM Sans' ? '"DM Sans", sans-serif' : fontFamily);
     document.documentElement.style.setProperty('--article-font-size', `${fontSize}px`);
     document.documentElement.dataset.highContrast = String(highContrast);
-    safeStorageSet('mw-font-family', fontFamily);
-    safeStorageSet('mw-font-size', String(fontSize));
-    safeStorageSet('mw-high-contrast', String(highContrast));
-    safeStorageSet('mw-focus-guide', String(focusGuideEnabled));
+    safeStorageSet('math-wiki:settings:font-family:v1', fontFamily);
+    safeStorageSet('math-wiki:settings:font-size:v1', String(fontSize));
+    safeStorageSet('math-wiki:settings:high-contrast:v1', String(highContrast));
+    safeStorageSet('math-wiki:settings:focus-guide:v1', String(focusGuideEnabled));
   }, [fontFamily, fontSize, highContrast, focusGuideEnabled]);
 
   useEffect(() => {
@@ -99,55 +121,40 @@ function App() {
     if (commandOpen) window.setTimeout(() => searchRef.current?.focus(), 20);
   }, [commandOpen]);
 
-  const searchResults = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return [];
-    const branchResults = mathBranches.flatMap((branch) => {
-      const results: { title: string; detail: string; to: string; id: string }[] = [];
-      if (branch.title.toLowerCase().includes(normalized)) {
-        results.push({ title: branch.title, detail: 'Mathematics branch', to: `/branches/${branch.id}`, id: branch.id });
-      }
-      for (const item of branch.topics) {
-        if (item.title.toLowerCase().includes(normalized)) {
-          results.push({ title: item.title, detail: `Topic · ${branch.title}`, to: `/branches/${branch.id}/${item.id}`, id: `${branch.id}-${item.id}` });
-        }
-      }
-      return results;
-    });
-    const articleResults = getAllArticles().flatMap((article) => {
-      const results: { title: string; detail: string; to: string; id: string }[] = [];
-      if ([article.title, ...article.aliases].some((value) => value.toLowerCase().includes(normalized))) {
-        results.push({ title: article.title, detail: `Article · ${article.level}`, to: `/articles/${article.slug}`, id: `article-${article.id}` });
-      }
-      for (const block of article.blocks) {
-        const content = block.type === 'text' || block.type === 'definition' ? block.content
-          : block.type === 'latex' ? block.latex
-          : block.type === 'example' ? `${block.question} ${block.steps.join(' ')} ${block.answer}`
-          : block.type === 'exercise' ? `${block.question} ${block.hint || ''} ${block.answer || ''}`
-          : block.type === 'table' ? `${block.headers.join(' ')} ${block.rows.flat().join(' ')}`
-          : block.type === 'graph' ? `${block.expression} ${block.caption || ''}`
-          : block.type === 'image' ? `${block.alt} ${block.caption || ''}`
-          : `${block.url} ${block.caption || ''}`;
-        if (`${block.heading || ''} ${content}`.toLowerCase().includes(normalized)) {
-          results.push({ title: block.heading || article.title, detail: `Article block · ${article.title}`, to: `/articles/${article.slug}?block=${block.id}`, id: `block-${article.id}-${block.id}` });
-        }
-      }
-      return results;
-    });
-    const commandResults = [
-      { title: 'Bookmarks', detail: 'Open saved articles', to: '/bookmarks', id: 'action-bookmarks' },
-      { title: 'Settings', detail: 'Change reading width and appearance', to: '/settings', id: 'action-settings' },
-      { title: 'Split View', detail: 'Read two articles side by side', to: '/split/sum', id: 'action-split' },
-      { title: 'My Pages', detail: 'Manage your article drafts', to: '/my-pages', id: 'action-my-pages' },
-    ].filter((item) => `${item.title} ${item.detail}`.toLowerCase().includes(normalized));
-    const symbolResults = mathSymbols.filter((symbol) => [symbol.symbol, symbol.name, symbol.category, symbol.latex, ...(symbol.aliases || [])].join(' ').toLowerCase().includes(normalized)).slice(0, 5).map((symbol) => ({ title: `${symbol.symbol} · ${symbol.name}`, detail: `Mathematical symbol · ${symbol.category}`, to: `/symbols?q=${encodeURIComponent(normalized)}`, id: `symbol-${symbol.id}` }));
-    return [...articleResults, ...branchResults, ...symbolResults, ...commandResults].slice(0, 14);
-  }, [query]);
+  const searchIndex = useMemo(
+    () => buildSearchIndex(getAllArticles(), mathBranches, mathSymbols, searchActions),
+    // Rebuild when the command palette opens or navigation returns from an editor.
+    [commandOpen, location.pathname],
+  );
+  const searchResponse = useMemo(() => searchDocuments(searchIndex, query, 24), [searchIndex, query]);
+  const searchResults = searchResponse.results;
+  const parsedSearch = searchResponse.parsed;
 
-  const goToResult = (to: string) => {
+  useEffect(() => setActiveResultIndex(0), [query]);
+
+  useEffect(() => {
+    if (!commandOpen || !query.trim()) return;
+    searchResultsRef.current?.querySelector<HTMLElement>('.search-result-item.is-active')?.scrollIntoView({ block: 'nearest' });
+  }, [activeResultIndex, commandOpen, query, searchResults.length]);
+
+  const rememberSearch = (value: string) => {
+    const next = saveRecentSearch(recentSearches, value);
+    setRecentSearches(next);
+    safeStorageSetJson('math-wiki:search:recent:v1', next);
+  };
+
+
+  const goToResult = (to: string, searchedFor = query) => {
+    if (searchedFor.trim()) rememberSearch(searchedFor);
     navigate(to);
     setQuery('');
+    setActiveResultIndex(0);
     setCommandOpen(false);
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    safeStorageSetJson('math-wiki:search:recent:v1', []);
   };
 
   return (
@@ -212,6 +219,8 @@ function App() {
             <Route path="/playground" element={<MathPlaygroundPage />} />
             <Route path="/symbols" element={<MathSymbolsPage />} />
             <Route path="/bookmarks" element={<BookmarksPage />} />
+            <Route path="/workspace" element={<PersonalWorkspacePage />} />
+            <Route path="/learning" element={<LearningCenterPage />} />
             <Route path="/settings" element={<SettingsPage theme={theme} setTheme={setTheme} contentWidth={contentWidth} setContentWidth={setContentWidth} fontFamily={fontFamily} setFontFamily={setFontFamily} fontSize={fontSize} setFontSize={setFontSize} highContrast={highContrast} setHighContrast={setHighContrast} focusGuideEnabled={focusGuideEnabled} setFocusGuideEnabled={setFocusGuideEnabled} />} />
             <Route path="/mission" element={<SimplePage title="Math Wiki Mission" description="A space for the purpose, principles and long-term direction of this mathematics library." />} />
             <Route path="/creator" element={<SimplePage title="About the Creator" description="A dedicated space for creator information. Content can be added when you are ready." />} />
@@ -224,17 +233,108 @@ function App() {
       {commandOpen && (
         <div className="command-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setCommandOpen(false); }}>
           <section className="command-dialog" role="dialog" aria-modal="true" aria-label="Search and commands">
-            <div className="command-input-wrap"><Search size={19} /><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search branches, topics and pages..." /><kbd>ESC</kbd><button className="icon-button command-close" onClick={() => setCommandOpen(false)} aria-label="Close search"><X size={17} /></button></div>
-            <div className="command-results">
-              {!query.trim() ? <><div className="result-heading">Quick navigation</div><button className="command-result" onClick={() => goToResult('/editor/new')}><FilePlus2 size={17} /><span><strong>Create a page</strong><small>Open the article editor</small></span><ArrowRight size={15} /></button><button className="command-result" onClick={() => goToResult('/branches')}><Network size={17} /><span><strong>Browse all branches</strong><small>Explore the mathematics catalogue</small></span><ArrowRight size={15} /></button><button className="command-result" onClick={() => goToResult('/playground')}><Activity size={17} /><span><strong>Math Playground</strong><small>Open the mathematics workspace</small></span><ArrowRight size={15} /></button><button className="command-result" onClick={() => goToResult('/symbols')}><Sigma size={17} /><span><strong>Math Symbols Library</strong><small>Browse mathematical notation</small></span><ArrowRight size={15} /></button><button className="command-result" onClick={() => goToResult('/bookmarks')}><Bookmark size={17} /><span><strong>Bookmarks</strong><small>Open saved articles</small></span><ArrowRight size={15} /></button><button className="command-result" onClick={() => goToResult('/settings')}><Settings size={17} /><span><strong>Settings</strong><small>Adjust the reading workspace</small></span><ArrowRight size={15} /></button><button className="command-result" onClick={() => goToResult('/split/sum')}><Files size={17} /><span><strong>Split View</strong><small>Read two articles side by side</small></span><ArrowRight size={15} /></button></> : searchResults.length ? <><div className="result-heading">Search results <span>{searchResults.length}</span></div>{searchResults.map((result) => <button className="command-result" key={result.id} onClick={() => goToResult(result.to)}><BookOpen size={17} /><span><strong>{result.title}</strong><small>{result.detail}</small></span><ArrowRight size={15} /></button>)}</> : <div className="search-empty"><Search size={22} /><strong>No matching topics</strong><span>Try another mathematical term.</span></div>}
+            <div className="command-input-wrap">
+              <Search size={19} />
+              <input
+                ref={searchRef}
+                value={query}
+                aria-label="Search mathematics, formulas and commands"
+                aria-controls="command-search-results"
+                aria-activedescendant={searchResults[activeResultIndex] ? `search-option-${searchResults[activeResultIndex].id}` : undefined}
+                placeholder="Search articles, blocks, formulas, symbols…"
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowDown' && searchResults.length) { event.preventDefault(); setActiveResultIndex((current) => (current + 1) % searchResults.length); }
+                  if (event.key === 'ArrowUp' && searchResults.length) { event.preventDefault(); setActiveResultIndex((current) => (current - 1 + searchResults.length) % searchResults.length); }
+                  if (event.key === 'Enter' && searchResults[activeResultIndex]) { event.preventDefault(); goToResult(searchResults[activeResultIndex].to); }
+                }}
+              />
+              <kbd>ESC</kbd>
+              <button className="icon-button command-close" onClick={() => setCommandOpen(false)} aria-label="Close search"><X size={17} /></button>
             </div>
-            <div className="command-hint"><span><kbd>↵</kbd> Open result</span><span><kbd>ESC</kbd> Close</span><span>Search includes published articles, drafts and individual content blocks</span></div>
+            <div className="search-operator-row">
+              <span>FILTER</span>
+              {['branch:algebra', 'level:university', 'difficulty:easy', 'type:formula'].map((operator) => (
+                <button key={operator} onClick={() => setQuery((current) => `${current.trim()}${current.trim() ? ' ' : ''}${operator}`)}>{operator}</button>
+              ))}
+            </div>
+            <div className="search-active-filters">
+              {Object.entries(parsedSearch.filters).filter(([, value]) => Boolean(value)).map(([key, value]) => <span key={key}>{key}: {value}</span>)}
+            </div>
+            <div ref={searchResultsRef} className="command-results" id="command-search-results" role={query.trim() ? 'listbox' : undefined} aria-label={query.trim() ? 'Search results' : undefined} aria-live="polite">
+              {!query.trim() ? (
+                <>
+                  <div className="result-heading">Quick navigation</div>
+                  {searchActions.slice(0, 8).map((action) => <button className="command-result" key={action.id} onClick={() => goToResult(action.to)}><ActionIcon id={action.id} /><span><strong>{action.title}</strong><small>{action.detail}</small></span><ArrowRight size={15} /></button>)}
+                  {recentSearches.length > 0 && <div className="recent-search-section"><div className="result-heading"><span>Recent searches</span><button onClick={clearRecentSearches}>Clear</button></div>{recentSearches.map((recent) => <button className="recent-search-item" key={recent} onClick={() => setQuery(recent)}><span className="recent-search-icon">↺</span><span>{recent}</span><ArrowRight size={13} /></button>)}</div>}
+                </>
+              ) : searchResults.length ? (
+                <>
+                  <div className="result-heading"><span>Search results</span><span>{searchResponse.total > searchResults.length ? `${searchResults.length} of ${searchResponse.total}` : searchResponse.total}</span></div>
+                  {searchResults.map((result, index) => <SearchResultButton key={result.id} result={result} query={query} active={index === activeResultIndex} onMouseEnter={() => setActiveResultIndex(index)} onClick={() => goToResult(result.to)} />)}
+                </>
+              ) : (
+                <div className="search-empty">
+                  <Search size={22} />
+                  <strong>No matching results</strong>
+                  <span>Try another term or adjust the filters.</span>
+                  {searchResponse.suggestions.length > 0 && <div className="search-suggestions"><span>Suggestions</span>{searchResponse.suggestions.map((suggestion) => <button key={suggestion} onClick={() => setQuery(suggestion)}>{suggestion}</button>)}</div>}
+                </div>
+              )}
+            </div>
+            <div className="search-syntax-help"><span>Operators:</span><code>branch:</code><code>level:</code><code>difficulty:</code><code>type:</code><span>Use quotes for exact phrases.</span></div>
+            <div className="command-hint"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open result</span><span><kbd>ESC</kbd> Close</span><span>Articles · Blocks · Formulas · Symbols · Branches</span></div>
           </section>
         </div>
       )}
       <ReadingFocusGuide enabled={focusGuideEnabled} />
     </div>
   );
+}
+
+function ActionIcon({ id }: { id: string }) {
+  if (id.includes('workspace')) return <HardDrive size={17} />;
+  if (id.includes('branch')) return <Network size={17} />;
+  if (id.includes('symbol')) return <Sigma size={17} />;
+  if (id.includes('learning')) return <GraduationCap size={17} />;
+  if (id.includes('bookmark')) return <Bookmark size={17} />;
+  if (id.includes('playground')) return <Activity size={17} />;
+  if (id.includes('create')) return <FilePlus2 size={17} />;
+  if (id.includes('split')) return <Files size={17} />;
+  if (id.includes('settings')) return <Settings size={17} />;
+  return <FileText size={17} />;
+}
+
+function SearchResultButton({ result, query, active, onMouseEnter, onClick }: {
+  result: SearchResult;
+  query: string;
+  active: boolean;
+  onMouseEnter: () => void;
+  onClick: () => void;
+}) {
+  const Icon = result.kind === 'symbol' ? Sigma : result.kind === 'branch' || result.kind === 'topic' ? Network : result.kind === 'action' ? Settings : BookOpen;
+  return (
+    <button id={`search-option-${result.id}`} className={`command-result search-result-item ${active ? 'is-active' : ''}`} role="option" aria-selected={active} onMouseEnter={onMouseEnter} onClick={onClick}>
+      <Icon size={17} />
+      <span>
+        <strong><HighlightedSearchText value={result.title} query={query} /></strong>
+        <small>{result.detail}</small>
+        {result.snippet && <em className="search-result-snippet"><HighlightedSearchText value={result.snippet} query={query} /></em>}
+      </span>
+      <ArrowRight size={15} />
+    </button>
+  );
+}
+
+function HighlightedSearchText({ value, query }: { value: string; query: string }) {
+  const terms = [...new Set([...parseSearchQuery(query).terms, ...parseSearchQuery(query).phrases])]
+    .filter((term) => term.length > 0)
+    .sort((a, b) => b.length - a.length);
+  if (!terms.length) return <>{value}</>;
+  const escapeRegExp = (term: string) => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const matcher = new RegExp(`(${terms.map(escapeRegExp).join('|')})`, 'giu');
+  const parts = value.split(matcher);
+  return <>{parts.map((part, index) => terms.some((term) => part.toLocaleLowerCase() === term.toLocaleLowerCase()) ? <mark key={`${index}-${part}`}>{part}</mark> : <span key={`${index}-${part}`}>{part}</span>)}</>;
 }
 
 function getCurrentSection(path: string) {
@@ -244,7 +344,9 @@ function getCurrentSection(path: string) {
   if (path.startsWith('/branches')) return 'Branches of Mathematics';
   if (path.startsWith('/playground')) return 'Math Playground';
   if (path.startsWith('/symbols')) return 'Math Symbols Library';
+  if (path.startsWith('/workspace')) return 'Personal Workspace';
   if (path.startsWith('/bookmarks')) return 'Bookmarks';
+  if (path.startsWith('/learning')) return 'Learning Center';
   if (path.startsWith('/my-pages')) return 'My Pages';
   if (path.startsWith('/settings')) return 'Settings';
   if (path.startsWith('/mission')) return 'Math Wiki Mission';
@@ -304,7 +406,7 @@ function BranchPage() {
   const { branchId } = useParams();
   const branch = mathBranches.find((item) => item.id === branchId);
   if (!branch) return <NotFound />;
-  const articles = getAllArticles().filter((article) => article.branch === branch.id);
+  const articles = getAllArticles().filter((article) => article.branch === branch.id && article.status === 'published');
   return <UnderDevelopmentPage title={branch.title} description={branch.description} breadcrumb="Branches of Mathematics" parentTo="/branches" topics={branch.topics} branchId={branch.id} articles={articles} />;
 }
 
@@ -353,8 +455,30 @@ function SettingsPage({ theme, setTheme, contentWidth, setContentWidth, fontFami
       <div className="settings-section-title"><h2>Workspace layout</h2><p>Choose the reading width used for mathematics articles.</p></div>
       <div className="setting-row"><div><strong>Content width</strong><span>Your preference is saved on this device.</span></div><div className="segmented-control"><button className={contentWidth === 'shrink' ? 'selected' : ''} onClick={() => setContentWidth('shrink')}>Shrink</button><button className={contentWidth === 'normal' ? 'selected' : ''} onClick={() => setContentWidth('normal')}>Normal</button><button className={contentWidth === 'wide' ? 'selected' : ''} onClick={() => setContentWidth('wide')}>Wide</button></div></div>
     </section>
-    <div className="settings-local-note">Reading preferences are saved locally in this browser and do not sync to other devices.</div>
+    <StorageDiagnostics />
+    <div className="settings-local-note">Reading preferences and personal work are saved in this browser and do not sync to other devices.</div>
   </div>;
+}
+
+function StorageDiagnostics() {
+  const [diagnostics, setDiagnostics] = useState<Awaited<ReturnType<typeof inspectBrowserStorage>> | null>(null);
+  useEffect(() => {
+    let active = true;
+    void inspectBrowserStorage().then((result) => { if (active) setDiagnostics(result); });
+    return () => { active = false; };
+  }, []);
+  const formatBytes = (value?: number) => {
+    if (typeof value !== 'number') return 'Not available';
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  };
+  return <section className="settings-section">
+    <div className="settings-section-title"><h2>Local data storage</h2><p>Check whether this browser can save drafts, bookmarks and annotations.</p></div>
+    <div className="setting-row"><div><strong>Local save access</strong><span>A temporary test value is written and removed to verify storage access.</span></div><span className={`setting-value ${diagnostics?.localStorageAvailable ? 'storage-ok' : diagnostics ? 'storage-warning' : ''}`}>{diagnostics ? diagnostics.localStorageAvailable ? 'Available' : 'Restricted' : 'Checking…'}</span></div>
+    <div className="setting-row"><div><strong>Browser storage estimate</strong><span>Estimate for this website's origin; it may include data from other site features.</span></div><span className="setting-value">{diagnostics ? `${formatBytes(diagnostics.originUsage)} / ${formatBytes(diagnostics.originQuota)}` : 'Checking…'}</span></div>
+    {diagnostics && !diagnostics.localStorageAvailable && <p className="storage-warning-note" role="status">This browser is currently blocking local saves. Export important drafts before closing this page.</p>}
+  </section>;
 }
 
 function SimplePage({ title, description }: { title: string; description: string }) {

@@ -1,4 +1,4 @@
-import { safeStorageGet, safeStorageSet } from './safeStorage';
+import { safeStorageGetJson, safeStorageSetJson } from './safeStorage';
 
 export type AnnotationTone = 'light' | 'mid' | 'dark' | 'red' | 'blue' | 'green' | 'yellow';
 
@@ -28,14 +28,17 @@ export interface DrawingStroke {
 const TEXT_KEY = 'math-wiki:annotations:v1';
 const DRAWING_KEY = 'math-wiki:drawings:v2';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
 function readMap<T>(key: string): Record<string, T[]> {
-  try {
-    const value: unknown = JSON.parse(safeStorageGet(key, '{}') || '{}');
-    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, T[]> : {};
-  } catch { return {}; }
+  const value = safeStorageGetJson(key, {} as Record<string, unknown>, isRecord);
+  return Object.fromEntries(Object.entries(value)
+    .filter(([, records]) => Array.isArray(records))
+    .map(([id, records]) => [id, (records as T[]).slice(-5000)]));
 }
 function writeMap<T>(key: string, map: Record<string, T[]>): void {
-  if (!safeStorageSet(key, JSON.stringify(map))) {
+  if (!safeStorageSetJson(key, map)) {
     throw new Error('Annotations could not be saved. Browser storage may be unavailable or full.');
   }
 }

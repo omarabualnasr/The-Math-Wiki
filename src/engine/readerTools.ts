@@ -1,15 +1,14 @@
 import type { ArticleBlock, MathArticle } from '../types/article';
-import { safeStorageGet, safeStorageSet } from './safeStorage';
+import { safeStorageGetJson, safeStorageSet } from './safeStorage';
 
 const BOOKMARKS_KEY = 'math-wiki:bookmarks:v1';
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((id) => typeof id === 'string');
+}
+
 export function getBookmarks(): string[] {
-  try {
-    const value: unknown = JSON.parse(safeStorageGet(BOOKMARKS_KEY, '[]') || '[]');
-    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
-  } catch {
-    return [];
-  }
+  return [...new Set(safeStorageGetJson(BOOKMARKS_KEY, [] as string[], isStringArray))];
 }
 
 export function isBookmarked(articleId: string): boolean {
@@ -47,6 +46,30 @@ export function articleBlockToText(block: ArticleBlock): string {
       return `${title}${block.headers.join('\t')}\n${block.rows.map((row) => row.join('\t')).join('\n')}`;
     case 'exercise':
       return `${title}${block.question}${block.hint ? `\nHint: ${block.hint}` : ''}${block.answer ? `\nAnswer: ${block.answer}` : ''}`;
+    case 'theorem':
+    case 'lemma':
+    case 'corollary':
+    case 'proposition':
+    case 'axiom':
+      return `${title}${block.type.toUpperCase()}: ${block.statement}${block.attribution ? `\n${block.attribution}` : ''}`;
+    case 'proof':
+      return `${title}Proof${block.targetLabel ? ` of ${block.targetLabel}` : ''}\n${block.content}${block.conclusion ? `\n${block.conclusion}` : ''}`;
+    case 'callout':
+      return `${title}${block.variant.toUpperCase()}: ${block.content}`;
+    case 'comparison':
+      return `${title}${block.leftTitle}\n${block.leftContent}\n\n${block.rightTitle}\n${block.rightContent}`;
+    case 'steps':
+      return `${title}${block.steps.map((step, index) => `${index + 1}. ${step}`).join('\n')}`;
+    case 'disclosure':
+      return `${title}${block.summary}\n${block.content}`;
+    case 'citation':
+      return `${title}${block.citation}${block.author ? `\n${block.author}` : ''}${block.year ? ` (${block.year})` : ''}${block.url ? `\n${block.url}` : ''}`;
+    case 'resource':
+      return `${title}${block.label}${block.description ? `\n${block.description}` : ''}\n${block.url}`;
+    case 'reference':
+      return `${title}${block.prefix || ''}${block.targetLabel}${block.suffix || ''}`;
+    case 'parameter':
+      return `${title}${block.expression}\n${block.parameter}: ${block.min} to ${block.max} (step ${block.step}, initial ${block.initial})`;
   }
 }
 

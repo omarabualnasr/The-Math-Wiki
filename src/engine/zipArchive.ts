@@ -69,3 +69,56 @@ export function createZipArchive(files: ZipEntry[]): Blob {
   const archive = concat([...localParts, centralDirectory, end]);
   return new Blob([archive.buffer as ArrayBuffer], { type: 'application/zip' });
 }
+
+export interface ExtractedZipEntry {
+  name: string;
+  data: Uint8Array;
+}
+
+/** Read ZIP files produced with the STORE method by createZipArchive. */
+export function extractStoredZipArchive(input: ArrayBuffer, limits: { maxBytes?: number; maxEntries?: number } = {}): ExtractedZipEntry[] {
+  const bytes = new Uint8Array(input);
+  const view = new DataView(input);
+  const maxBytes = limits.maxBytes ?? 80 * 1024 * 1024;
+  const maxEntries = limits.maxEntries ?? 2000;
+  if (bytes.byteLength > maxBytes) throw new Error('This archive is larger than the allowed backup size.');
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  const entries: ExtractedZipEntry[] = [];
+  const names = new Set<string>();
+  let offset = 0;
+  let totalUncompressed = 0;
+
+  while (offset + 4 <= bytes.length && view.getUint32(offset, true) === 0x04034b50) {
+    if (entries.length >= maxEntries) throw new Error('This archive contains too many files.');
+    if (offset + 30 > bytes.length) throw new Error('The ZIP archive has a truncated local header.');
+    const flags = view.getUint16(offset + 6, true);
+    const method = view.getUint16(offset + 8, true);
+    const expectedCrc = view.getUint32(offset + 14, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const uncompressedSize = view.getUint32(offset + 22, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    if ((flags & 0x0001) !== 0 || (flags & 0x0008) !== 0) throw new Error('Encrypted or streaming ZIP entries are not supported.');
+    if (method !== 0 || compressedSize !== uncompressedSize) throw new Error('This backup uses an unsupported ZIP compression method.');
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const dataEnd = dataStart + compressedSize;
+    if (dataEnd > bytes.length || dataStart < nameStart) throw new Error('The ZIP archive contains a truncated file.');
+    let name: string;
+    try { name = decoder.decode(bytes.subarray(nameStart, nameStart + nameLength)); }
+    catch { throw new Error('The ZIP archive contains an invalid filename.'); }
+    if (!name || name.startsWith('/') || name.includes('..') || name.includes('\\') || names.has(name)) throw new Error('The ZIP archive contains an unsafe or duplicate filename.');
+    totalUncompressed += uncompressedSize;
+    if (totalUncompressed > maxBytes) throw new Error('The uncompressed backup exceeds the allowed size.');
+    const data = bytes.slice(dataStart, dataEnd);
+    if (crc32(data) !== expectedCrc) throw new Error(`The ZIP entry “${name}” failed its integrity check.`);
+    names.add(name);
+    entries.push({ name, data });
+    offset = dataEnd;
+  }
+
+  if (entries.length === 0 || offset + 4 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) {
+    throw new Error('This file is not a supported Mathematics Wiki backup archive.');
+  }
+  return entries;
+}

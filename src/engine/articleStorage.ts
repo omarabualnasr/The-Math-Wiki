@@ -1,8 +1,8 @@
 import { sampleArticles } from '../data/articles';
 import { slugify } from '../data/branches';
-import { ARTICLE_DIFFICULTIES, ARTICLE_LEVELS } from '../types/article';
-import type { ArticleBlock, MathArticle } from '../types/article';
-import { safeStorageGet, safeStorageSet } from './safeStorage';
+import type { MathArticle } from '../types/article';
+import { isArticle, validateArticle } from './articleValidation';
+import { safeStorageGetJson, safeStorageSet } from './safeStorage';
 
 const STORAGE_KEY = 'math-wiki:articles:v1';
 
@@ -12,71 +12,22 @@ function makeId(): string {
     : `block-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
 }
 
-function isArticleBlock(value: unknown): value is ArticleBlock {
-  if (!value || typeof value !== 'object') return false;
-  const block = value as Record<string, unknown>;
-  if (typeof block.id !== 'string' || (block.heading !== undefined && typeof block.heading !== 'string')) return false;
-  switch (block.type) {
-    case 'text':
-    case 'definition':
-      return typeof block.content === 'string';
-    case 'latex':
-      return typeof block.latex === 'string' && typeof block.display === 'boolean'
-        && (block.explanation === undefined || typeof block.explanation === 'string');
-    case 'image':
-      return typeof block.src === 'string' && typeof block.alt === 'string'
-        && (block.caption === undefined || typeof block.caption === 'string');
-    case 'video':
-      return typeof block.url === 'string' && (block.caption === undefined || typeof block.caption === 'string');
-    case 'graph':
-      return typeof block.expression === 'string' && typeof block.xMin === 'number'
-        && typeof block.xMax === 'number' && (block.caption === undefined || typeof block.caption === 'string');
-    case 'example':
-      return typeof block.question === 'string' && isStringArray(block.steps) && typeof block.answer === 'string';
-    case 'table':
-      return isStringArray(block.headers) && Array.isArray(block.rows)
-        && block.rows.every((row) => isStringArray(row));
-    case 'exercise':
-      return typeof block.question === 'string'
-        && (block.hint === undefined || typeof block.hint === 'string')
-        && (block.answer === undefined || typeof block.answer === 'string');
-    default:
-      return false;
-  }
+function getLocalArticleRecords(): unknown[] {
+  return safeStorageGetJson(STORAGE_KEY, [] as unknown[], isUnknownArray);
 }
-
-function isArticle(value: unknown): value is MathArticle {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Record<string, unknown>;
-  return candidate.schemaVersion === 1
-    && typeof candidate.id === 'string'
-    && typeof candidate.slug === 'string'
-    && typeof candidate.title === 'string'
-    && typeof candidate.summary === 'string'
-    && typeof candidate.branch === 'string'
-    && typeof candidate.createdAt === 'string'
-    && typeof candidate.updatedAt === 'string'
-    && ARTICLE_LEVELS.includes(candidate.level as MathArticle['level'])
-    && ARTICLE_DIFFICULTIES.includes(candidate.difficulty as MathArticle['difficulty'])
-    && ['draft', 'ready', 'published'].includes(String(candidate.status))
-    && isStringArray(candidate.aliases)
-    && isStringArray(candidate.relatedTopics)
-    && Array.isArray(candidate.blocks)
-    && candidate.blocks.every(isArticleBlock);
-}
-
 
 export function getLocalArticles(): MathArticle[] {
-  try {
-    const parsed: unknown = JSON.parse(safeStorageGet(STORAGE_KEY, '[]') || '[]');
-    return Array.isArray(parsed) ? parsed.filter(isArticle) : [];
-  } catch {
-    return [];
-  }
+  return getLocalArticleRecords().filter(isArticle);
+}
+
+export function getLocalArticleDiagnostics(): { total: number; valid: number; invalid: number } {
+  const records = getLocalArticleRecords();
+  const valid = records.filter(isArticle).length;
+  return { total: records.length, valid, invalid: records.length - valid };
 }
 
 export function getAllArticles(): MathArticle[] {
@@ -96,7 +47,25 @@ export function getArticleById(id: string): MathArticle | undefined {
 }
 
 export function saveLocalArticle(article: MathArticle): void {
-  const current = getLocalArticles().filter((item) => item.id !== article.id);
+  const validation = validateArticle(article);
+  if (!validation.valid) {
+    const firstIssue = validation.issues[0];
+    throw new Error(firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : 'This article is not valid.');
+  }
+
+  const existingArticle = getAllArticles().find((item) => item.slug === article.slug && item.id !== article.id);
+  if (existingArticle) throw new Error(`The URL slug “${article.slug}” is already used by “${existingArticle.title}”. Choose a different slug.`);
+  const existingLocal = getLocalArticles().some((item) => item.id === article.id);
+  if (sampleArticles.some((item) => item.id === article.id) && !existingLocal) {
+    throw new Error('This ID belongs to a published sample article. Create a new article instead of replacing published content.');
+  }
+
+  // Keep unrelated malformed legacy records intact. They are reported through
+  // getLocalArticleDiagnostics instead of being silently discarded on save.
+  const current = getLocalArticleRecords().filter((record) => {
+    if (!record || typeof record !== 'object' || !('id' in record)) return true;
+    return (record as { id?: unknown }).id !== article.id;
+  });
   const updated = { ...article, status: article.status === 'published' ? 'draft' as const : article.status, updatedAt: new Date().toISOString() };
   if (!safeStorageSet(STORAGE_KEY, JSON.stringify([...current, updated]))) {
     throw new Error('Browser storage is unavailable or full. Export your work and check storage permissions.');
@@ -104,7 +73,10 @@ export function saveLocalArticle(article: MathArticle): void {
 }
 
 export function deleteLocalArticle(id: string): void {
-  const remaining = getLocalArticles().filter((article) => article.id !== id);
+  const remaining = getLocalArticleRecords().filter((record) => {
+    if (!record || typeof record !== 'object' || !('id' in record)) return true;
+    return (record as { id?: unknown }).id !== id;
+  });
   if (!safeStorageSet(STORAGE_KEY, JSON.stringify(remaining))) {
     throw new Error('This draft could not be deleted because browser storage is unavailable.');
   }
@@ -132,6 +104,11 @@ export function createEmptyArticle(title = 'Untitled article'): MathArticle {
 }
 
 export function exportArticleJson(article: MathArticle): void {
+  const validation = validateArticle(article);
+  if (!validation.valid) {
+    const firstIssue = validation.issues[0];
+    throw new Error(firstIssue ? `Cannot export ${firstIssue.path}: ${firstIssue.message}` : 'This article is not valid.');
+  }
   const publishable = { ...article, status: 'published' as const, updatedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(publishable, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -141,10 +118,15 @@ export function exportArticleJson(article: MathArticle): void {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  // Delay revocation so browsers have time to begin the download.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function parseImportedArticle(value: unknown): MathArticle {
-  if (!isArticle(value)) throw new Error('This file is not a valid Mathematics Wiki article (schema version 1).');
-  return { ...value, status: 'draft' };
+  const validation = validateArticle(value);
+  if (!validation.valid || !validation.article) {
+    const firstIssue = validation.issues[0];
+    throw new Error(firstIssue ? `Invalid article at ${firstIssue.path}: ${firstIssue.message}` : 'This file is not a valid Mathematics Wiki article.');
+  }
+  return { ...validation.article, status: 'draft' };
 }
