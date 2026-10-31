@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Archive, Calculator, Clock3, Copy, History, RotateCcw, Trash2 } from 'lucide-react';
+import { Calculator, Clock3, Copy, History, RotateCcw, Trash2 } from 'lucide-react';
 import { evaluateMathExpression, formatNumber } from '../../engine/mathEngine';
 import MathKeyboard from './MathKeyboard';
-import { loadPersonalWorkspace, saveWorkspaceSession } from '../../engine/personalWorkspaceStorage';
+import { loadPersonalWorkspace } from '../../engine/personalWorkspaceStorage';
 import { safeStorageGet, safeStorageGetJson, safeStorageRemove, safeStorageSet } from '../../engine/safeStorage';
 
-const ArchiveIcon = () => <Archive size={13}/>;
 
 type HistoryItem = { id: string; expression: string; result: string; createdAt: string };
 type AngleMode = 'deg' | 'rad';
@@ -56,14 +55,6 @@ export default function CalculatorTool({ restoreSessionId }: { restoreSessionId?
     }).catch(() => setSessionNotice('Saved calculator session could not be loaded.'));
   }, [restoreSessionId]);
 
-  const saveSession = async () => {
-    const name = window.prompt('Name this calculator session', expression.trim() ? expression.slice(0, 38) : 'Calculator session');
-    if (!name) return;
-    try {
-      await saveWorkspaceSession('calculator', name, { expression, answer, lastAnswer, angleMode, history: history as unknown as import('../../engine/personalWorkspaceStorage').JsonValue[] } as unknown as { [key: string]: import('../../engine/personalWorkspaceStorage').JsonValue });
-      setSessionNotice('Calculator session saved to your Personal Workspace.');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save this calculator session.'); }
-  };
 
   const insert = (token: string) => {
     const input = inputRef.current;
@@ -112,7 +103,7 @@ export default function CalculatorTool({ restoreSessionId }: { restoreSessionId?
 
   return <div className="play-tool-grid calculator-layout">
     <section className="play-panel calculator-panel">
-      <div className="play-panel-heading"><div className="play-panel-icon"><Calculator size={17} /></div><div><h2>Scientific calculator</h2><p>Evaluate expressions with standard mathematical functions.</p></div><button className="button button-secondary workspace-save-button" onClick={() => void saveSession()}><ArchiveIcon/> Save session</button></div>
+      <div className="play-panel-heading"><div className="play-panel-icon"><Calculator size={17} /></div><div><h2>Scientific calculator</h2><p>Evaluate expressions with standard mathematical functions.</p></div></div>
       {sessionNotice && <p className="workspace-inline-notice" role="status">{sessionNotice}</p>}
       <div className="calculator-display">
         <div className="calculator-input-label-row"><label htmlFor="scientific-expression">Expression</label><button type="button" className="angle-mode-toggle" onClick={() => { const next = angleMode === 'deg' ? 'rad' : 'deg'; setAngleMode(next); safeStorageSet(ANGLE_MODE_KEY, next); }}>{angleMode === 'deg' ? 'DEG' : 'RAD'}</button></div>

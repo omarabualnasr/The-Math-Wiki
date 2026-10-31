@@ -1,4 +1,4 @@
-import { evaluate } from 'mathjs';
+import { evaluate, parse } from 'mathjs';
 
 const allowedNames = new Set([
   'x', 'pi', 'e', 'tau', 'ans',
@@ -29,4 +29,30 @@ export function evaluateMathExpression(expression: string, scope: Record<string,
 export function formatNumber(value: number, precision = 10): string {
   if (Object.is(value, -0)) return '0';
   return Number(value.toPrecision(precision)).toString();
+}
+
+
+/** Convert calculator-style input into presentation TeX. MathJS renders named
+ * functions (sin, cos, tan, log, etc.) as mathematical operators rather than
+ * adjacent italic variables. This is a display-only conversion; it never
+ * evaluates the expression. */
+export function expressionToLatex(expression: string): string {
+  const source = expression.replace(/π/g, 'pi').replace(/×/g, '*').replace(/÷/g, '/').trim();
+  if (!source) return String.raw`\,`;
+  try {
+    return parse(source).toTex();
+  } catch {
+    // Keep a readable fallback for incomplete input while styling common
+    // function names as operators (for example, \tan rather than tan).
+    return source
+      .replace(/\b(asin|acos|atan|sinh|cosh|tanh|sin|cos|tan|log10|log2|log|ln|sqrt|cbrt)\s*\(/gi, (_match, name: string) => {
+        const normalized = name.toLowerCase();
+        const operator = normalized === 'asin' ? String.raw`\arcsin`
+          : normalized === 'acos' ? String.raw`\arccos`
+            : normalized === 'atan' ? String.raw`\arctan`
+              : `\\${normalized}`;
+        return `${operator}\\left(`;
+      })
+      .replace(/\)/g, String.raw`\right)`);
+  }
 }

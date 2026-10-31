@@ -48,7 +48,6 @@ export default function GraphBlock({ block }: { block: GraphBlockData }) {
   const pointVisible = Number.isFinite(selectedY) && selected >= block.xMin && selected <= block.xMax;
 
   return <div className="article-graph">
-    <div className="graph-head"><span>INTERACTIVE GRAPH</span><code>y = {block.expression}</code></div>
     <div className="graph-canvas-wrap">
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Graph of ${block.expression} with horizontal axis ${block.xLabel || 'x'} and vertical axis ${block.yLabel || 'y'}`}>
         {Array.from({ length: 6 }, (_, i) => {

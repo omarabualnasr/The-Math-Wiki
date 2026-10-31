@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { Activity, Archive, Download, Plus, RotateCcw, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
-import { evaluateMathExpression, formatNumber } from '../../engine/mathEngine';
+import { evaluateMathExpression, expressionToLatex, formatNumber } from '../../engine/mathEngine';
+import MathExpression from '../articles/MathExpression';
 import { analyseFunction, estimateAreaBetween, estimateDerivative, estimateIntegral, findFunctionIntersections, projectSurfacePoint, sampleCartesian, sampleImplicit, sampleParametric, samplePolar, sampleSurface, type GraphPoint, type GraphRange } from '../../engine/graphEngine';
 import MathKeyboard from './MathKeyboard';
 import { loadPersonalWorkspace, saveWorkspaceSession, type JsonValue } from '../../engine/personalWorkspaceStorage';
@@ -13,13 +14,13 @@ const HEIGHT = 430;
 const PAD = { left: 64, right: 25, top: 28, bottom: 48 };
 const lineClasses = ['graph-work-line graph-work-line-0', 'graph-work-line graph-work-line-1', 'graph-work-line graph-work-line-2', 'graph-work-line graph-work-line-3'];
 const evaluate = (expression: string, scope: Record<string, number>) => evaluateMathExpression(expression, scope);
-const graphModes: { id: GraphMode; label: string; description: string }[] = [
+const graphModes: { id: GraphMode; label: string; description: string; soon?: boolean }[] = [
   { id: 'cartesian', label: 'Cartesian', description: 'Plot one or more functions of x and analyze their behavior.' },
-  { id: 'polar', label: 'Polar', description: 'Plot radius functions r(θ) on a polar coordinate plane.' },
-  { id: 'parametric', label: 'Parametric', description: 'Plot a curve using separate x(t) and y(t) expressions.' },
-  { id: 'implicit', label: 'Implicit', description: 'Plot the zero contour of an equation F(x, y) = 0.' },
-  { id: 'surface', label: '3D Surface', description: 'Explore a surface z = f(x, y) with adjustable viewing angles.' },
-  { id: 'visualizations', label: 'Visualizations', description: 'Explore mathematical ideas through interactive visual demonstrations.' },
+  { id: 'polar', label: 'Polar', description: 'Plot radius functions r(θ) on a polar coordinate plane.', soon: true },
+  { id: 'parametric', label: 'Parametric', description: 'Plot a curve using separate x(t) and y(t) expressions.', soon: true },
+  { id: 'implicit', label: 'Implicit', description: 'Plot the zero contour of an equation F(x, y) = 0.', soon: true },
+  { id: 'surface', label: '3D Surface', description: 'Explore a surface z = f(x, y) with adjustable viewing angles.', soon: true },
+  { id: 'visualizations', label: 'Visualizations', description: 'Explore mathematical ideas through interactive visual demonstrations.', soon: true },
 ];
 
 function buildPath(points: GraphPoint[], sx: (value: number) => number, sy: (value: number) => number): string {
@@ -320,8 +321,11 @@ export default function GraphTool({ restoreSessionId }: { restoreSessionId?: str
       const session = workspace.sessions.find((item) => item.id === restoreSessionId && item.kind === 'graph');
       if (!session) { setSessionNotice('Saved graph configuration was not found.'); return; }
       const value = session.payload;
-      const modes: GraphMode[] = ['cartesian', 'polar', 'parametric', 'implicit'];
-      if (typeof value.mode === 'string' && (modes.includes(value.mode as GraphMode) || value.mode === 'surface')) setMode(value.mode as GraphMode);
+      if (value.mode === 'cartesian') setMode('cartesian');
+      else if (typeof value.mode === 'string' && ['polar', 'parametric', 'implicit', 'surface', 'visualizations'].includes(value.mode)) {
+        setMode('cartesian');
+        setSessionNotice('That graph mode is marked Soon. Opened the Cartesian workspace instead.');
+      }
       if (typeof value.expression === 'string') setExpression(value.expression);
       if (typeof value.secondExpression === 'string') setSecondExpression(value.secondExpression);
       if (Array.isArray(value.functions)) {
@@ -339,16 +343,7 @@ export default function GraphTool({ restoreSessionId }: { restoreSessionId?: str
     }).catch(() => setSessionNotice('Saved graph configuration could not be loaded.'));
   }, [restoreSessionId]);
 
-  const saveSession = async () => {
-    if (mode === 'visualizations' || mode === 'surface') return;
-    const name = window.prompt('Name this graph configuration', expression.trim() ? `y = ${expression}`.slice(0, 44) : 'Graph configuration');
-    if (!name) return;
-    try {
-      const payload = { mode, expression, secondExpression, functions, xMin, xMax, yMin, yMax, inspectValue, showTangent, showIntegral } as unknown as { [key: string]: JsonValue };
-      await saveWorkspaceSession('graph', name, payload);
-      setSessionNotice('Graph configuration saved to your Personal Workspace.');
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save this graph.'); }
-  };
+
   const range = useMemo(() => ({ min: xMin, max: xMax }), [xMin, xMax]);
   const yRange = useMemo(() => ({ min: yMin, max: yMax }), [yMin, yMax]);
   const analysis = useMemo(() => {
@@ -363,8 +358,8 @@ export default function GraphTool({ restoreSessionId }: { restoreSessionId?: str
   }, [mode, functions, range]);
   const inspectValues = useMemo(() => {
     if (mode === 'cartesian') return functions.map((item) => {
-      try { return { id: item.id, label: `y = ${item.expression}`, value: formatNumber(evaluate(item.expression, { x: inspectValue }), 8) }; }
-      catch { return { id: item.id, label: `y = ${item.expression}`, value: 'undefined' }; }
+      try { return { id: item.id, label: `y = ${expressionToLatex(item.expression)}`, value: formatNumber(evaluate(item.expression, { x: inspectValue }), 8) }; }
+      catch { return { id: item.id, label: `y = ${expressionToLatex(item.expression)}`, value: 'undefined' }; }
     });
     if (mode === 'polar') {
       try { const radius = evaluate(expression, { t: inspectValue }); return [{ id: 'polar', label: 'r(θ)', value: formatNumber(radius, 8) }]; }
@@ -394,11 +389,9 @@ export default function GraphTool({ restoreSessionId }: { restoreSessionId?: str
   };
   const zoom = (factor: number) => { const center = (xMin + xMax) / 2; const half = (xMax - xMin) * factor / 2; setXMin(Number((center - half).toFixed(4))); setXMax(Number((center + half).toFixed(4))); };
   const currentMode = graphModes.find((item) => item.id === mode)!;
-  const setPreset = (value: string) => { setExpression(value); if (mode === 'cartesian') setFunctions([{ id: `${Date.now()}`, expression: value }]); setError(''); };
-  const presets = mode === 'polar' ? ['1', '2+sin(3*t)', '2*cos(2*t)', '2*sin(3*t)'] : mode === 'parametric' ? ['cos(t)', 'sin(t)'] : mode === 'implicit' ? ['x^2+y^2-9', 'y^2-x^3', 'x^2-y^2-1'] : ['sin(x)', 'cos(x)', 'x^2', 'sqrt(abs(x))', '1/x', 'log(x)'];
   return <div className="graph-studio">
-    <div className="graph-session-actions">{sessionNotice && <span role="status">{sessionNotice}</span>}{mode !== 'surface' && mode !== 'visualizations' && <button className="button button-secondary" onClick={() => void saveSession()}><Archive size={13}/> Save graph</button>}</div>
-    <div className="graph-mode-tabs" role="tablist" aria-label="Graph type">{graphModes.map((item) => <button key={item.id} role="tab" aria-selected={mode === item.id} className={mode === item.id ? 'selected' : ''} onClick={() => { setMode(item.id); setKeyboardOpen(false); setError(''); }}>{item.label}</button>)}</div>
+    {sessionNotice && <div className="workspace-inline-notice" role="status">{sessionNotice}</div>}
+    <div className="graph-mode-tabs" role="tablist" aria-label="Graph type">{graphModes.map((item) => <button key={item.id} type="button" role="tab" disabled={Boolean(item.soon)} aria-disabled={Boolean(item.soon)} aria-selected={mode === item.id} className={`${mode === item.id ? 'selected' : ''} ${item.soon ? 'graph-mode-soon' : ''}`} onClick={() => { if (item.soon) return; setMode(item.id); setKeyboardOpen(false); setError(''); }}>{item.label}{item.soon && <span className="soon-pill">Soon</span>}</button>)}</div>
     {mode === 'surface' ? <SurfaceWorkspace restoreSessionId={restoreSessionId}/> : mode === 'visualizations' ? <MathematicalVisualizations/> : <div className="play-tool-grid graph-layout graph-studio-layout">
       <section className="play-panel graph-panel">
         <div className="play-panel-heading"><div className="play-panel-icon"><Activity size={17}/></div><div><h2>{mode === 'implicit' ? 'Implicit equation plotter' : mode === 'polar' ? 'Polar graphing' : mode === 'parametric' ? 'Parametric graphing' : 'Interactive graphing'}</h2><p>{currentMode.description}</p></div></div>
@@ -412,11 +405,11 @@ export default function GraphTool({ restoreSessionId }: { restoreSessionId?: str
           {error && <p className="tool-error">{error}</p>}
         </div>
         {keyboardOpen && <MathKeyboard onInsert={insert} onClose={() => setKeyboardOpen(false)} compact/>}
-        {mode === 'cartesian' && <div className="graph-function-list">{functions.map((item, index) => <div className="graph-function-chip" key={item.id}><span className={`graph-legend-line graph-legend-${index % 4}`}/><code>y = {item.expression}</code><button onClick={() => setFunctions((current) => current.filter((func) => func.id !== item.id))} aria-label={`Remove function ${item.expression}`}><Trash2 size={13}/></button></div>)}</div>}
+        {mode === 'cartesian' && <div className="graph-function-list">{functions.map((item, index) => <div className="graph-function-chip" key={item.id}><span className={`graph-legend-line graph-legend-${index % 4}`}/><MathExpression latex={`y = ${expressionToLatex(item.expression)}`}/><button onClick={() => setFunctions((current) => current.filter((func) => func.id !== item.id))} aria-label={`Remove function ${item.expression}`}><Trash2 size={13}/></button></div>)}</div>}
         {(mode === 'implicit') && <div className="graph-range-controls"><label>x minimum<input type="number" value={xMin} onChange={(event) => setXMin(Number(event.target.value))}/></label><label>x maximum<input type="number" value={xMax} onChange={(event) => setXMax(Number(event.target.value))}/></label><label>y minimum<input type="number" value={yMin} onChange={(event) => setYMin(Number(event.target.value))}/></label><label>y maximum<input type="number" value={yMax} onChange={(event) => setYMax(Number(event.target.value))}/></label></div>}
         <div className="graph-range-controls"><label>{mode === 'cartesian' || mode === 'implicit' ? 'x minimum' : 'Parameter minimum'}<input type="number" value={xMin} onChange={(event) => setXMin(Number(event.target.value))}/></label><label>{mode === 'cartesian' || mode === 'implicit' ? 'x maximum' : 'Parameter maximum'}<input type="number" value={xMax} onChange={(event) => setXMax(Number(event.target.value))}/></label><div className="graph-zoom-actions"><button className="tool-icon-button" onClick={() => zoom(.7)} aria-label="Zoom in"><ZoomIn size={15}/></button><button className="tool-icon-button" onClick={() => zoom(1.4)} aria-label="Zoom out"><ZoomOut size={15}/></button></div></div>
         <div className="graph-tool-canvas-wrap"><GraphPlot mode={mode} functions={functions} expression={expression} secondExpression={secondExpression} xRange={range} yRange={yRange} inspectValue={inspectValue} onInspect={setInspectValue} showTangent={showTangent} showIntegral={showIntegral}/></div>
-        {inspectValues.length > 0 && <div className="graph-inspector-panel"><span>INSPECTED {mode === 'cartesian' || mode === 'implicit' ? 'X' : 'PARAMETER'} <strong>{formatNumber(inspectValue, 6)}</strong></span>{inspectValues.map((item) => <span key={item.id}>{item.label}<strong>{item.value}</strong></span>)}</div>}
+        {inspectValues.length > 0 && <div className="graph-inspector-panel"><span>INSPECTED {mode === 'cartesian' || mode === 'implicit' ? 'X' : 'PARAMETER'} <strong>{formatNumber(inspectValue, 6)}</strong></span>{inspectValues.map((item) => <span key={item.id}><MathExpression latex={item.label}/><strong>{item.value}</strong></span>)}</div>}
         {mode === 'cartesian' && <>
           <div className="graph-analysis-toggles"><label><input type="checkbox" checked={showTangent} onChange={(event) => setShowTangent(event.target.checked)}/> Show tangent at inspected x</label><label><input type="checkbox" checked={showIntegral} onChange={(event) => setShowIntegral(event.target.checked)}/> Shade area to x-axis</label></div>
           {analysis && <div className="graph-analysis-grid">
@@ -430,7 +423,6 @@ export default function GraphTool({ restoreSessionId }: { restoreSessionId?: str
           <p className="math-engine-note">Analysis values are numerical estimates over the selected interval. Sampling can miss closely spaced roots, discontinuities or narrow extrema. The first two functions are used for intersection and area-between-curves estimates.</p>
         </>}
       </section>
-      <aside className="play-panel graph-notes-panel"><div className="eyebrow">GRAPHING TOOLS</div><h2>{mode === 'cartesian' ? 'Function workspace' : `${currentMode.label} workspace`}</h2><p>{currentMode.description}</p><div className="graph-example-list"><span>Try these expressions</span>{presets.map((item) => <button key={item} onClick={() => setPreset(item)}><code>{item}</code><Plus size={13}/></button>)}</div><div className="geometry-help"><strong>Graph inspection</strong><p>Click inside the plot to inspect the horizontal coordinate or parameter and read the corresponding evaluated values.</p></div>{mode === 'implicit' && <div className="geometry-help"><strong>Implicit contour</strong><p>The plot samples F(x, y) on a grid and draws approximate zero-contour segments where the sign changes. Increase the range carefully to preserve detail.</p></div>}</aside>
     </div>}
   </div>;
 }

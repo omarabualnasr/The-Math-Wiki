@@ -51,10 +51,13 @@ assert.match(workspaceStorage, /setArticleOffline/, 'The personal workspace must
 assert.match(articleCatalog, /import\.meta\.glob<MathArticle>\('\.\/pages\/\*\.json', \{ eager: true/, 'Published article JSON must be bundled eagerly for the offline catalogue.');
 
 assert.match(playground, /restoreSessionId/, 'The playground must support opening saved tool sessions.');
-for (const [name, source] of [['graph', graphTool], ['geometry', geometryTool], ['calculator', calculatorTool]]) {
-  assert.match(source, /saveWorkspaceSession/, `${name} sessions must be saveable.`);
+for (const [name, source] of [['graph', graphTool], ['geometry', geometryTool]]) {
+  assert.match(source, /saveWorkspaceSession/, `${name} sessions must retain their existing save capability.`);
   assert.match(source, /restoreSessionId/, `${name} sessions must be restorable.`);
 }
+assert.match(calculatorTool, /restoreSessionId/, 'Existing calculator sessions must remain restorable.');
+assert.match(calculatorTool, /loadPersonalWorkspace/, 'The calculator must retain support for opening older saved sessions.');
+assert.doesNotMatch(calculatorTool, /Save session/, 'The calculator must not expose a Save session button.');
 assert.match(backup, /restoreWorkspaceBackup/, 'Selective backup restoration must exist.');
 assert.match(backup, /extractStoredZipArchive/, 'Backup archives must be validated before restoration.');
 assert.match(workspaceStorage, /isPersonalWorkspaceState/, 'Personal workspace records must be validated.');

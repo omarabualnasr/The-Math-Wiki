@@ -75,7 +75,7 @@ export default function BlockRenderer({ block, onCopy, numberLabel, references =
   const referenced = 'targetLabel' in block && block.targetLabel ? references[block.targetLabel] : undefined;
   const statement = isStatementBlock(block) ? block : null;
 
-  return <section className="article-block" id={block.id} data-block-id={block.id} data-annotation-content>
+  return <section className="article-block" id={block.id} data-block-id={block.id} data-block-type={block.type} data-annotation-content>
     {(block.heading || onCopy) && <div className="article-block-heading-row">{block.heading ? <h2 className="article-section-heading">{block.heading}</h2> : <span />} {onCopy && <button className="block-copy-button" onClick={copyBlock} aria-label={`Copy ${block.heading || 'content'} block`} title="Copy this block"><Copy size={13}/><span>Copy block</span></button>}</div>}
     <div className="article-block-content">
       {block.type === 'text' && <div className="article-prose">{paragraphs(block.content)}</div>}

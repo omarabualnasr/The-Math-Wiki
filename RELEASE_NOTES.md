@@ -20,3 +20,13 @@ The nine existing project contract suites and the new release integration suite 
 ## Deployment
 
 Extract the ZIP and upload the contents of its `math-wiki/` directory to the root of the GitHub repository. Keep `.github/workflows/deploy.yml` at the repository root beside `package.json` and `src/`. In GitHub repository settings, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**.
+
+## Current interface refinement
+
+- Enabled only Cartesian graphing; Polar, Parametric, Implicit, 3D Surface and Visualizations are disabled Soon tabs. Removed the graphing side panel and Save graph action.
+- Corrected displayed graph-function notation using the MathJS-to-LaTeX formatter so named functions such as tangent render as mathematical operators.
+- Removed the calculator Save session action.
+- Marked quiz, worksheet, timed exam, Read Aloud and Split View actions as disabled Soon controls.
+- Removed the Sum graph heading and explanatory slider caption while preserving the graph and its mathematical controls.
+- Removed the annotation flyout X button; retained Finish annotating and added separate drawing-only and full-annotation deletion actions.
+- Restored the browser's native right-click context menu.

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, BookOpen, Bookmark, Check, Clock3, Columns2, Copy, Download, Highlighter, Link2, MessageSquareText, Share2, Trash2, X, Pencil } from 'lucide-react';
 import { mathBranches } from '../../data/branches';
 import { getArticleBySlug } from '../../engine/articleStorage';
 import { buildArticleReferenceIndex } from '../../engine/articleReferences';
 import { articleToText, copyText, isBookmarked, shareArticle, toggleBookmark } from '../../engine/readerTools';
-import { createTextAnnotation, getTextAnnotations, removeTextAnnotation, updateTextAnnotation } from '../../engine/annotationStorage';
+import { clearTextAnnotations as clearStoredTextAnnotations, createTextAnnotation, getTextAnnotations, removeTextAnnotation, updateTextAnnotation } from '../../engine/annotationStorage';
 import type { AnnotationTone, TextAnnotation } from '../../engine/annotationStorage';
 import BlockRenderer from './BlockRenderer';
 import AnnotationHighlights from './AnnotationHighlights';
@@ -60,7 +60,6 @@ function findAnnotationAtPoint(x: number, y: number, annotations: TextAnnotation
 export default function ArticlePage() {
   const { slug = '' } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const article = getArticleBySlug(slug);
   const [bookmarked, setBookmarked] = useState(() => article ? isBookmarked(article.id) : false);
   const [notice, setNotice] = useState('');
@@ -241,10 +240,10 @@ export default function ArticlePage() {
           <button className={`article-action ${bookmarked ? 'is-active' : ''}`} onClick={saveBookmark}><Bookmark size={14} fill={bookmarked ? 'currentColor' : 'none'}/><span>{bookmarked ? 'Bookmarked' : 'Bookmark'}</span></button>
           <button className="article-action" onClick={copyArticle}><Copy size={14}/><span>Copy article</span></button>
           <button className="article-action" onClick={share}><Share2 size={14}/><span>Share</span></button>
-          <button className="article-action" onClick={() => navigate(`/split/${article.slug}`)}><Columns2 size={14}/><span>Split view</span></button>
-          <button className="article-action" onClick={() => setStudyMode('quiz')}><BookOpen size={14}/><span>Create quiz</span></button>
-          <button className="article-action" onClick={() => setStudyMode('worksheet')}><Download size={14}/><span>Worksheet</span></button>
-          <button className="article-action" onClick={() => setStudyMode('exam')}><Clock3 size={14}/><span>Timed exam</span></button>
+          <button className="article-action article-action-soon" type="button" disabled aria-disabled="true"><Columns2 size={14}/><span>Split view</span><span className="soon-pill">Soon</span></button>
+          <button className="article-action article-action-soon" type="button" disabled aria-disabled="true" onClick={() => setStudyMode('quiz')}><BookOpen size={14}/><span>Create quiz</span><span className="soon-pill">Soon</span></button>
+          <button className="article-action article-action-soon" type="button" disabled aria-disabled="true" onClick={() => setStudyMode('worksheet')}><Download size={14}/><span>Worksheet</span><span className="soon-pill">Soon</span></button>
+          <button className="article-action article-action-soon" type="button" disabled aria-disabled="true" onClick={() => setStudyMode('exam')}><Clock3 size={14}/><span>Timed exam</span><span className="soon-pill">Soon</span></button>
         </div>
         <div className="article-future-actions" aria-label="Upcoming article tools">
           <button type="button" disabled><Link2 size={13}/><span>Mind Linker</span><span className="soon-pill">Soon</span></button>
@@ -255,7 +254,7 @@ export default function ArticlePage() {
         <div className="article-header-rule" />
       </header>
       <div className="article-content-wrap" ref={contentRef}>
-        <DrawingLayer key={article.id} articleId={article.id} containerRef={contentRef} onNotice={setNotice}/>
+        <DrawingLayer key={article.id} articleId={article.id} containerRef={contentRef} onNotice={setNotice} onClearTextAnnotations={() => { try { clearStoredTextAnnotations(article.id); setAnnotations([]); setNotePopup(null); setEditingNote(false); setSelection(null); activeNoteRef.current = ''; return true; } catch { setNotice('Text highlights and notes could not be removed.'); return false; } }}/>
         <div className="article-content">{article.blocks.map((block) => <BlockRenderer key={block.id} block={block} onCopy={setNotice} numberLabel={referenceIndex.byBlockId[block.id]?.display} references={referenceIndex.byLabel} />)}</div>
       </div>
       {studyMode && <StudyPanel article={article} mode={studyMode} onClose={() => setStudyMode(null)} />}

@@ -1609,3 +1609,19 @@ button:disabled, [aria-disabled='true'] { cursor: not-allowed; }
 .playground-tool-tabs button:disabled, .setting-row-disabled { opacity: .48; pointer-events: none; }
 
 @media (max-width: 520px) { .library-row { align-items: flex-start; flex-wrap: wrap; }.library-item-copy { flex-basis: calc(100% - 50px); }.library-item-actions { margin-left: 46px; } }
+
+
+/* Current scope: only Cartesian graphing is enabled. Other graph modes are visible Soon items. */
+.graph-mode-tabs button:disabled { color: var(--muted); opacity: .48; cursor: not-allowed; pointer-events: none; }
+.graph-mode-tabs button:disabled .soon-pill { margin-left: 2px; }
+.graph-studio-layout { grid-template-columns: minmax(0, 1fr); }
+.graph-function-math .math-expression, .graph-function-chip .math-expression { font-size: 14px; }
+.graph-inspector-panel .math-expression { color: var(--text-2); font-size: 12px; }
+.graph-inspector-panel .katex { font-size: 1em; }
+.article-block[data-block-id="sum-graph"] > .article-block-heading-row { display: none; }
+.article-graph .graph-head { display: none; }
+.read-aloud-soon { opacity: .48; cursor: not-allowed; }
+.read-aloud-soon button:disabled, .read-aloud-soon select:disabled { opacity: .7; cursor: not-allowed; }
+.article-action-soon:disabled { color: var(--muted); opacity: .48; cursor: not-allowed; }
+.drawing-delete-all-button { color: var(--muted); }
+.drawing-delete-all-button:disabled { opacity: .42; }

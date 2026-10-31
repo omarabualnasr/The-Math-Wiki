@@ -15,9 +15,12 @@ const [packageText, workflow, app, main, articleTypes, renderer, validator, pwa,
 ]);
 const pkg = JSON.parse(packageText);
 
-const [symbolsPage, tablesTool, calculatorTool, playgroundPage] = await Promise.all([
+const [symbolsPage, tablesTool, calculatorTool, playgroundPage, graphTool, drawingLayer, readAloud, graphBlock, mathEngine, sumArticle] = await Promise.all([
   read('src/features/symbols/MathSymbolsPage.tsx'), read('src/features/playground/TablesTool.tsx'),
   read('src/features/playground/CalculatorTool.tsx'), read('src/features/playground/MathPlaygroundPage.tsx'),
+  read('src/features/playground/GraphTool.tsx'), read('src/features/articles/DrawingLayer.tsx'),
+  read('src/features/articles/ReadAloud.tsx'), read('src/features/articles/GraphBlock.tsx'),
+  read('src/engine/mathEngine.ts'), read('src/data/pages/sum.json'),
 ]);
 
 // Every declared article block must be validated and rendered.
@@ -53,6 +56,55 @@ assert.doesNotMatch(symbolsPage, /symbols-summary-row|121|catalogued symbols|PNG
 assert.doesNotMatch(tablesTool, /Scrollable table|Copy as tab-separated values|Multiplication table · 12 × 12/, 'Table footer microcopy must remain removed.');
 assert.doesNotMatch(calculatorTool, /Supports parentheses|Enter to calculate/, 'Calculator footer instructions must remain removed.');
 assert.doesNotMatch(playgroundPage, /Five workspaces|Calculations and constructions run in your browser|Personal history and geometry are stored on this device/, 'Playground summary cards and footer microcopy must remain removed.');
+assert.match(playgroundPage, /label: 'Geometry and shapes',[\s\S]*?soon: true/, 'Geometry and shapes must remain visibly marked Soon.');
+assert.match(playgroundPage, /label: 'Math engine',[\s\S]*?soon: true/, 'Math engine must remain visibly marked Soon.');
+assert.doesNotMatch(calculatorTool, /Save session/, 'The calculator must not expose a Save session action.');
+assert.doesNotMatch(graphTool, /Save graph/, 'The graphing workspace must not expose a Save graph action.');
+for (const label of ['Polar', 'Parametric', 'Implicit', '3D Surface', 'Visualizations']) {
+  const modeLine = graphTool.split('\n').find((line) => line.includes(`label: '${label}'`)) || '';
+  assert.match(modeLine, /soon: true/, `${label} graph mode must be marked Soon.`);
+}
+assert.doesNotMatch(graphTool, /graph-notes-panel|Graphing Tools/, 'The graphing tools side panel must remain removed.');
+assert.match(graphTool, /item\.soon && <span className="soon-pill">Soon<\/span>/, 'Disabled graph modes must display a Soon badge.');
+assert.match(graphTool, /disabled=\{Boolean\(item\.soon\)\}/, 'Soon graph modes must not be clickable.');
+assert.match(mathEngine, /parse\(source\)\.toTex\(\)/, 'Graph expressions must use mathematical TeX formatting for named functions.');
+assert.match(graphTool, /expressionToLatex\(item\.expression\)/, 'Function labels must use mathematical expression formatting.');
+assert.doesNotMatch(graphBlock, /INTERACTIVE GRAPH|Move the slider to see how the sum/, 'The sample graph must not show a graph heading or explanatory caption.');
+assert.doesNotMatch(sumArticle, /Move the slider to see how the sum of the first n positive integers grows\.|Interactive graph/i, 'The Sum article graph copy must remain removed.');
+assert.match(readAloud, /read-aloud-soon[\s\S]*?Soon/, 'Read Aloud must be marked Soon.');
+assert.match(readAloud, /disabled aria-disabled="true"/, 'Read Aloud controls must be disabled.');
+assert.match(articlePage, /Split view[\s\S]*?Soon/, 'Split View must remain visibly marked Soon.');
+assert.match(articlePage, /Create quiz[\s\S]*?Soon[\s\S]*?Worksheet[\s\S]*?Soon[\s\S]*?Timed exam[\s\S]*?Soon/, 'Quiz, worksheet and timed exam actions must be marked Soon.');
+assert.match(drawingLayer, /Finish annotating/, 'The annotation toolbar must retain its Finish annotating action.');
+assert.doesNotMatch(drawingLayer, /aria-label="Close annotation toolbar"|<X size=/, 'The annotation toolbar must not display a close X button.');
+assert.match(drawingLayer, /Delete drawings only/, 'Users must be able to delete drawings without deleting text highlights.');
+assert.match(drawingLayer, /Delete everything/, 'Users must be able to delete drawings, highlights and notes together.');
+assert.match(drawingLayer, /onClearTextAnnotations\(\)/, 'Delete-all action must clear text highlights and notes.');
+assert.match(playgroundPage, /label: 'Geometry and shapes',[\s\S]*?soon: true/, 'Geometry and shapes must remain visibly marked Soon.');
+assert.match(playgroundPage, /label: 'Math engine',[\s\S]*?soon: true/, 'Math engine must remain visibly marked Soon.');
+assert.doesNotMatch(calculatorTool, /Save session/, 'The calculator must not expose a Save session action.');
+assert.doesNotMatch(graphTool, /Save graph/, 'The graphing workspace must not expose a Save graph action.');
+for (const label of ['Polar', 'Parametric', 'Implicit', '3D Surface', 'Visualizations']) {
+  assert.ok(graphTool.includes(`label: '${label}'`) && graphTool.includes(`label: '${label}', description:`), `${label} graph mode must exist.`);
+  const modeLine = graphTool.split('\n').find((line) => line.includes(`label: '${label}'`)) || '';
+  assert.match(modeLine, /soon: true/, `${label} graph mode must be marked Soon.`);
+}
+assert.doesNotMatch(graphTool, /graph-notes-panel|Graphing Tools/, 'The graphing tools side panel must remain removed.');
+assert.match(graphTool, /item\.soon && <span className="soon-pill">Soon<\/span>/, 'Disabled graph modes must display a Soon badge.');
+assert.match(graphTool, /disabled=\{Boolean\(item\.soon\)\}/, 'Soon graph modes must not be clickable.');
+assert.match(mathEngine, /parse\(source\)\.toTex\(\)/, 'Graph expressions must use mathematical TeX formatting for named functions.');
+assert.match(graphTool, /expressionToLatex\(item\.expression\)/, 'Function labels must use mathematical expression formatting.');
+assert.doesNotMatch(graphBlock, /INTERACTIVE GRAPH|Move the slider to see how the sum/, 'The sample graph must not show a graph heading or explanatory caption.');
+assert.doesNotMatch(sumArticle, /Move the slider to see how the sum of the first n positive integers grows\.|Interactive graph/i, 'The Sum article graph copy must remain removed.');
+assert.match(readAloud, /read-aloud-soon[\s\S]*?Soon/, 'Read Aloud must be marked Soon.');
+assert.match(readAloud, /disabled aria-disabled="true"/, 'Read Aloud controls must be disabled.');
+assert.match(articlePage, /Split view[\s\S]*?Soon/, 'Split View must remain visibly marked Soon.');
+assert.match(articlePage, /Create quiz[\s\S]*?Soon[\s\S]*?Worksheet[\s\S]*?Soon[\s\S]*?Timed exam[\s\S]*?Soon/, 'Quiz, worksheet and timed exam actions must be marked Soon.');
+assert.match(drawingLayer, /Finish annotating/, 'The annotation toolbar must retain its Finish annotating action.');
+assert.doesNotMatch(drawingLayer, /aria-label="Close annotation toolbar"|<X size=/, 'The annotation toolbar must not display a close X button.');
+assert.match(drawingLayer, /Delete drawings only/, 'Users must be able to delete drawings without deleting text highlights.');
+assert.match(drawingLayer, /Delete everything/, 'Users must be able to delete drawings, highlights and notes together.');
+assert.match(drawingLayer, /onClearTextAnnotations\(\)/, 'Delete-all action must clear text highlights and notes.');
 assert.match(app, /Math Wiki Mission[\s\S]*?Soon/, 'Math Wiki Mission must remain visible as a disabled Soon item.');
 assert.match(main, /<HashRouter>/, 'GitHub Pages navigation must use HashRouter.');
 assert.match(main, /registerAppServiceWorker\(\)/, 'The PWA service worker must register at startup.');

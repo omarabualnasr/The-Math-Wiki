@@ -14,7 +14,6 @@ import type { MathArticle } from '../types/article';
 import ArticleEditor from '../features/articles/ArticleEditor';
 import BookmarksPage from '../features/library/BookmarksPage';
 import LearningCenterPage from '../features/learning/LearningCenterPage';
-import SplitViewPage from '../features/library/SplitViewPage';
 import MathPlaygroundPage from '../features/playground/MathPlaygroundPage';
 import MathSymbolsPage from '../features/symbols/MathSymbolsPage';
 import PersonalWorkspacePage from '../features/workspace/PersonalWorkspacePage';
@@ -49,7 +48,6 @@ const searchActions = [
   { id: 'action-symbols', title: 'Math Symbols Library', detail: 'Browse mathematical notation', to: '/symbols' },
   { id: 'action-bookmarks', title: 'Bookmarks', detail: 'Open saved articles', to: '/bookmarks' },
   { id: 'action-settings', title: 'Settings', detail: 'Change appearance and reading preferences', to: '/settings' },
-  { id: 'action-split', title: 'Split View', detail: 'Read two articles side by side', to: '/split/sum' },
 ];
 
 function App() {
@@ -212,7 +210,7 @@ function App() {
             <Route path="/branches/:branchId" element={<BranchPage />} />
             <Route path="/branches/:branchId/:topicId" element={<TopicPage />} />
             <Route path="/articles/:slug" element={<ArticlePage />} />
-            <Route path="/split/:leftSlug" element={<SplitViewPage />} />
+            <Route path="/split/:leftSlug" element={<SoonFeaturePage title="Split View" />} />
             <Route path="/editor/new" element={<ArticleEditor isNew />} />
             <Route path="/editor/:articleId" element={<ArticleEditor />} />
             <Route path="/playground" element={<MathPlaygroundPage />} />
@@ -439,6 +437,13 @@ function SettingsPage({ fontFamily, setFontFamily, fontSize, setFontSize, highCo
       <div className="settings-section-title"><h2>Workspace layout</h2></div>
       <div className="setting-row setting-row-disabled" aria-disabled="true"><div><strong>Content width</strong></div><span className="soon-pill">Soon</span></div>
     </section>
+  </div>;
+}
+
+function SoonFeaturePage({ title }: { title: string }) {
+  return <div className="page-stack soon-feature-page">
+    <div className="page-heading"><div><h1>{title}</h1><p>This feature is not available yet.</p></div><span className="soon-pill">Soon</span></div>
+    <div className="development-panel"><div className="development-symbol"><BookOpen size={22}/></div><div className="development-copy"><h2>Under Development</h2><p>This feature is being reserved for a future update.</p></div></div>
   </div>;
 }
 

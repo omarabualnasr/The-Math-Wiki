@@ -47,6 +47,18 @@ The production build is written to `dist/`.
 
 The project uses `HashRouter` and relative Vite asset paths so repository project URLs work without server-side route rewrites. The GitHub Actions workflow runs the release smoke checks and storage/data contract tests before the TypeScript/Vite build.
 
+## Current interface availability
+
+The current interface intentionally exposes only the enabled tools below. Items marked **Soon** are visibly muted and disabled; their existing implementation code is retained where useful, but they cannot be opened or activated from the interface.
+
+- **Math Graphs:** Cartesian graphing is enabled. Polar, Parametric, Implicit, 3D Surface and Visualizations are marked Soon and disabled. The separate Graphing Tools side panel and the Save graph action are not shown. Trigonometric and other named functions in displayed graph expressions are formatted as mathematical operators through the expression-to-LaTeX renderer.
+- **Math Playground:** Geometry and shapes and Math Engine are marked Soon and disabled. The calculator no longer exposes a Save session button.
+- **Article actions:** Create quiz, Worksheet, Timed exam, Split View and Read Aloud are visible as muted Soon controls. Video and Book article views remain disabled.
+- **Sum sample graph:** The explanatory slider caption and visible graph heading are omitted; the graph itself retains its axes, numeric scale and interactive value control.
+- **Annotations:** Finish annotating closes drawing mode. Users can delete pen drawings only, or delete all drawings together with text highlights and attached notes. The browser's native right-click context menu remains available; the custom selection toolbar continues to offer Copy, Highlight and Add note.
+- **Personal Workspace and Learning Center:** Their code and routes are retained, but the navigation entries are muted and disabled with Soon badges.
+
+
 ## Creating and publishing articles
 
 1. Open **Create Page** in the application.
@@ -116,7 +128,7 @@ Pass 3 adds the first functional reading and library tools:
 - **Article actions:** Download PDF (opens the browser print dialog so the reader can choose Save as PDF), Bookmark, Copy article, Share and Split View.
 - **Block actions:** each article block can be copied independently. Equations copy their LaTeX source; tables copy as tab-separated text.
 - **Share fallback:** browsers with the Web Share API open the native share sheet; other browsers copy the article URL.
-- **Split View:** opens two available articles in independent, scrollable panes. A second article must exist in the published repository or local drafts before the right pane can display one.
+- **Split View (Soon):** the article action is visible but greyed and disabled; the previous split-view implementation is retained for a later release.
 - **Reading width:** Shrink, Normal and Wide settings persist in local storage and affect article layout on desktop.
 - **Search:** the side panel provides direct access to article, block, formula, symbol and branch search. The command palette remains available by keyboard shortcut.
 
@@ -172,12 +184,11 @@ Pass 5 adds personal reading annotations, article drawing, reading accessibility
 - **Text selection actions:** select text inside an article block to open a compact Copy / Highlight / Add note toolbar. Highlights support neutral gray plus red, blue, green and yellow user-mark colors; the application interface itself remains monochrome.
 - **Persistent highlights and notes:** saved ranges are keyed by article ID and block ID and include the selected quotation plus surrounding context. Notes receive a dotted underline marker and appear in a small popover when the marked passage is revisited. Notes can be edited or removed from that popover, which opens on pointer hover and on tap/click for touch devices. When an article changes, a unique quotation can be re-anchored; ambiguous or missing text is left unmarked instead of being attached to an unrelated passage.
 - **On-page drawing:** an overlay canvas covers the article content. Pen and eraser tools support seven ink choices, four stroke sizes, undo, redo, clear and automatic local saving. Stroke coordinates are normalized to the article canvas so drawings remain aligned when the reading width or device size changes; undo history is bounded to limit memory use. `Save PNG` exports the article content with its drawing layer using `html-to-image`; external resources that cannot be captured may cause the export to show a retry message.
-- **Read aloud:** uses the browser's Web Speech API with play, pause, resume, stop, voice and speed controls. Common LaTeX commands are converted to spoken phrases before reading. Actual voices depend on the operating system and browser.
+- **Read aloud (Soon):** the control row is visible but greyed and disabled in the current interface. The existing Web Speech implementation remains in the source for a future activation.
 - **Reading Focus Guide:** optional horizontal pointer-following guide for article reading areas. It is suppressed for touch pointer events.
-- **Reading preferences:** font family, font size, high contrast, focus guide, theme and content width are saved locally in this browser.
-- **Quiz creation:** generates short-answer questions from article exercises, worked examples and definitions, then checks responses and reports a score. The expected answer is shown after submission.
-- **Worksheet creation:** creates a printable question sheet with writing space. The answer key is collapsed separately on screen and can be printed/exported independently from the worksheet.
-- **Right-click behavior:** the browser context menu is suppressed throughout the application workspace.
+- **Reading preferences:** font family, font size, high contrast, focus guide and theme are saved locally. Content width is currently marked Soon and disabled.
+- **Quiz, worksheet and timed exam (Soon):** the article actions are visible but greyed and disabled. Their learning-engine and study-panel code is retained in the repository.
+- **Right-click behavior:** the browser native context menu remains available. The custom selection toolbar separately provides Copy, Highlight and Add note actions.
 
 ### Pass 5 data and browser notes
 

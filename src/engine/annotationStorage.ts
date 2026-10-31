@@ -113,6 +113,12 @@ export function removeTextAnnotation(articleId: string, annotationId: string): v
   writeMap(TEXT_KEY, map);
 }
 
+export function clearTextAnnotations(articleId: string): void {
+  const map = readMap<TextAnnotation>(TEXT_KEY);
+  map[articleId] = [];
+  writeMap(TEXT_KEY, map);
+}
+
 export function updateTextAnnotation(articleId: string, annotationId: string, note: string): void {
   const map = readMap<TextAnnotation>(TEXT_KEY);
   map[articleId] = getTextAnnotations(articleId).map((item) => item.id === annotationId ? { ...item, note } : item);

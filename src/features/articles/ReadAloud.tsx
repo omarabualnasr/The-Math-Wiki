@@ -69,12 +69,12 @@ export default function ReadAloud({ article }: { article: MathArticle }) {
     else if (state === 'paused') { window.speechSynthesis.resume(); setState('speaking'); }
   };
 
-  if (!supported) return <span className="read-aloud-unavailable">Read aloud is not supported in this browser.</span>;
-  return <div className="read-aloud-controls" aria-label="Read article aloud">
+  return <div className="read-aloud-controls read-aloud-soon" aria-label="Read aloud, coming soon" aria-disabled="true">
     <Volume2 size={14}/>
-    <button className="article-action" onClick={state === 'idle' ? play : pause} aria-label={state === 'idle' ? 'Read article aloud' : state === 'paused' ? 'Resume reading' : 'Pause reading'}>{state === 'speaking' ? <Pause size={13}/> : <Play size={13}/>}<span>{state === 'idle' ? 'Read aloud' : state === 'paused' ? 'Resume' : 'Pause'}</span></button>
-    <button className="article-action" onClick={stop} disabled={state === 'idle'} aria-label="Stop reading"><Square size={12}/></button>
-    <select aria-label="Reading speed" value={rate} onChange={(event) => setRate(Number(event.target.value))}><option value={0.75}>0.75×</option><option value={1}>1×</option><option value={1.25}>1.25×</option><option value={1.5}>1.5×</option><option value={2}>2×</option></select>
-    {voices.length > 0 && <select aria-label="Reading voice" value={voiceURI} onChange={(event) => setVoiceURI(event.target.value)}><option value="">Default voice</option>{voices.filter((voice) => voice.lang.toLowerCase().startsWith('en')).map((voice) => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name}</option>)}</select>}
+    <button className="article-action" type="button" disabled aria-disabled="true" onClick={state === 'idle' ? play : pause}>{state === 'speaking' ? <Pause size={13}/> : <Play size={13}/>}<span>Read aloud</span></button>
+    <button className="article-action" type="button" disabled aria-label="Stop reading" onClick={stop}><Square size={12}/></button>
+    <select aria-label="Reading speed" value={rate} disabled onChange={(event) => setRate(Number(event.target.value))}><option value={0.75}>0.75×</option><option value={1}>1×</option><option value={1.25}>1.25×</option><option value={1.5}>1.5×</option><option value={2}>2×</option></select>
+    {voices.length > 0 && <select aria-label="Reading voice" value={voiceURI} disabled onChange={(event) => setVoiceURI(event.target.value)}><option value="">Default voice</option>{voices.filter((voice) => voice.lang.toLowerCase().startsWith('en')).map((voice) => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name}</option>)}</select>}
+    <span className="soon-pill">Soon</span>
   </div>;
 }

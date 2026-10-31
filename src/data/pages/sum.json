@@ -142,14 +142,12 @@
     {
       "id": "sum-graph",
       "type": "graph",
-      "heading": "Explore the partial sums",
       "expression": "x*(x+1)/2",
       "xMin": 0,
       "xMax": 12,
       "xLabel": "n",
       "yLabel": "Sₙ",
-      "inspectValue": 5,
-      "caption": "Move the slider to see how the sum of the first n positive integers grows."
+      "inspectValue": 5
     },
     {
       "id": "sum-common-mistakes",

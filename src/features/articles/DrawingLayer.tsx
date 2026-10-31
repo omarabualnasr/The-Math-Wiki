@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent, RefObject } from 'react';
-import { Download, Eraser, PenLine, Redo2, Trash2, Undo2, X } from 'lucide-react';
+import { Download, Eraser, PenLine, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { getDrawingStrokes, saveDrawingStrokes } from '../../engine/annotationStorage';
 import type { AnnotationTone, DrawingPoint, DrawingStroke } from '../../engine/annotationStorage';
 
 type Tool = 'pen' | 'eraser';
 const toneColors: Record<AnnotationTone, string> = { light: '#bdbdbd', mid: '#666666', dark: '#111111', red: '#cf3f3f', blue: '#3267c8', green: '#258554', yellow: '#d7a928' };
 
-export default function DrawingLayer({ articleId, containerRef, onNotice }: {
+export default function DrawingLayer({ articleId, containerRef, onNotice, onClearTextAnnotations }: {
   articleId: string;
   containerRef: RefObject<HTMLDivElement>;
   onNotice: (message: string) => void;
+  onClearTextAnnotations: () => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [active, setActive] = useState(false);
@@ -187,6 +188,12 @@ export default function DrawingLayer({ articleId, containerRef, onNotice }: {
     if (!strokes.length || !window.confirm('Clear all saved drawings on this article?')) return;
     commitStrokes([]);
   };
+  const clearAllAnnotations = () => {
+    if (!window.confirm('Delete all drawings, text highlights and attached notes on this article?')) return;
+    if (!onClearTextAnnotations()) return;
+    commitStrokes([]);
+    onNotice('All drawings, text highlights and notes were removed');
+  };
   const exportView = async () => {
     const node = containerRef.current;
     if (!node) return;
@@ -216,9 +223,9 @@ export default function DrawingLayer({ articleId, containerRef, onNotice }: {
         </div>
         <button className="article-action" onClick={undo} disabled={!undoStack.length} aria-label="Undo"><Undo2 size={14}/></button>
         <button className="article-action" onClick={redo} disabled={!redoStack.length} aria-label="Redo"><Redo2 size={14}/></button>
-        <button className="article-action" onClick={clear} disabled={!strokes.length}><Trash2 size={13}/><span>Clear</span></button>
+        <button className="article-action drawing-delete-button" onClick={clear} disabled={!strokes.length} title="Delete only pen drawings"><Trash2 size={13}/><span>Delete drawings only</span></button>
+        <button className="article-action drawing-delete-all-button" onClick={clearAllAnnotations} title="Delete drawings, text highlights and notes together"><Trash2 size={13}/><span>Delete everything</span></button>
         <button className="article-action" onClick={exportView}><Download size={13}/><span>Save PNG</span></button>
-        <button className="article-action drawing-close" onClick={() => setActive(false)} aria-label="Close drawing tools"><X size={14}/></button>
       </>}
     </div>
     <canvas
