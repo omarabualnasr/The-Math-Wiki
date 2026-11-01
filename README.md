@@ -6,4 +6,4 @@ An interconnected mathematics knowledge platform.
 
 Currently focused on building the core engine and application before introducing mathematical subjects and content.
 
-[Visit The Math Wiki](h[ttps://omarabualnasr.github.io](https://omarabualnasr.github.io/TheMathWiki))
+[Visit The Math Wiki](https://omarabualnasr.github.io/TheMathWiki)
